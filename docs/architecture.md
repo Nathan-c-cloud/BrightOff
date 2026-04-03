@@ -17,22 +17,24 @@ Date : 2026-03-21
 
 ## Stack technique
 
-| Couche                 | Technologie                                    | Hébergement       |
-|------------------------|------------------------------------------------|-------------------|
-| Frontend               | Next.js, React, TypeScript, Tailwind CSS       | Vercel            |
-| Backend                | Python, FastAPI                                | GCP Cloud Run     |
-| Base de données        | PostgreSQL + pgvector                          | GCP Cloud SQL     |
-| Stockage CV            | Fichiers PDF / DOCX                            | GCP Cloud Storage |
-| IA — CV Parser         | Claude API (Anthropic SDK)                     | API externe       |
-| IA — Embeddings        | OpenAI text-embedding-3-small                  | API externe       |
-| IA — Matching          | pgvector (recherche de similarité vectorielle) | GCP Cloud SQL     |
-| IA — Gap Analyzer      | Claude API (Anthropic SDK)                     | API externe       |
-| Scraping               | Bright Data                                    | API externe       |
-| Authentification       | Auth.js (frontend) + JWT (backend)             | —                 |
-| Paiement               | Stripe (CB + PayPal)                           | API externe       |
-| Emails                 | SendGrid ou Resend                             | API externe       |
-| Cron jobs              | Cloud Scheduler → Cloud Run                    | GCP               |
-| Infrastructure as Code | Terraform                                      | —                 |
+| Couche                 | Technologie                                    | Hébergement            |
+|------------------------|------------------------------------------------|------------------------|
+| Frontend               | Next.js, React, TypeScript, Tailwind CSS       | Vercel                 |
+| Backend                | Python, FastAPI                                | AWS App Runner         |
+| Base de données        | PostgreSQL 16 + pgvector                       | AWS RDS PostgreSQL     |
+| Stockage CV            | Fichiers PDF / DOCX                            | AWS S3                 |
+| IA — CV Parser         | Claude API (Anthropic SDK)                     | API externe            |
+| IA — Embeddings        | OpenAI text-embedding-3-small                  | API externe            |
+| IA — Matching          | pgvector (recherche de similarité vectorielle) | AWS RDS PostgreSQL     |
+| IA — Gap Analyzer      | Claude API (Anthropic SDK)                     | API externe            |
+| Scraping               | Bright Data                                    | API externe            |
+| Authentification       | Auth.js (frontend) + JWT (backend)             | —                      |
+| Paiement               | Stripe (CB + PayPal)                           | API externe            |
+| Emails                 | SendGrid ou Resend                             | API externe            |
+| Cron jobs              | EventBridge Scheduler → ECS Fargate Tasks      | AWS                    |
+| Container registry     | ECR                                            | AWS                    |
+| Secrets                | SSM Parameter Store + Secrets Manager          | AWS                    |
+| Infrastructure as Code | Terraform                                      | —                      |
 
 ---
 
@@ -44,10 +46,17 @@ Les données de BrightOff sont fortement relationnelles : utilisateur → profil
 PostgreSQL est le choix naturel. L'extension **pgvector** permet en complément de gérer les embeddings vectoriels
 directement dans la même base, sans service séparé.
 
+### AWS App Runner pour le backend
+
+App Runner est l'équivalent AWS de Cloud Run : tu fournis une image Docker via ECR, AWS gère le load balancing, le TLS,
+le scaling et les healthchecks. Simplicité maximale pour un dev solo, coût maîtrisé (~13-20 $/mois), et connexion au
+VPC privé (RDS) via VPC Connector. Les cron jobs longs (scraping, matching) sont exécutés via des ECS Fargate Tasks
+déclenchées par EventBridge Scheduler.
+
 ### Vercel pour le frontend
 
 Vercel est optimisé pour Next.js, propose un déploiement automatique via Git et est gratuit pour commencer. La connexion
-Vercel ↔ Cloud Run est triviale : appels HTTP standard, URL de l'API passée en variable d'environnement, CORS configuré
+Vercel ↔ App Runner est triviale : appels HTTP standard, URL de l'API passée en variable d'environnement, CORS configuré
 côté FastAPI.
 
 ### Bright Data pour le scraping
@@ -86,16 +95,19 @@ BrightOff/
 │   ├── requirements.txt
 │   └── Dockerfile
 │
-├── infrastructure/           # Terraform (GCP)
-│   ├── main.tf
+├── infrastructure/           # Terraform (AWS)
+│   ├── main.tf              # Provider AWS, backend state (S3 + DynamoDB)
 │   ├── variables.tf
-│   ├── cloud_run.tf
-│   ├── cloud_sql.tf
-│   ├── cloud_storage.tf
-│   ├── cloud_scheduler.tf
-│   ├── secret_manager.tf
-│   ├── iam.tf
-│   ├── networking.tf
+│   ├── vpc.tf               # VPC, subnets, route tables, Internet Gateway
+│   ├── security_groups.tf   # SG pour App Runner, RDS
+│   ├── ecr.tf               # Container registry
+│   ├── apprunner.tf         # Service App Runner
+│   ├── rds.tf               # Instance PostgreSQL + pgvector
+│   ├── s3.tf                # Bucket CV storage
+│   ├── eventbridge.tf       # Scheduler pour les cron jobs
+│   ├── ecs.tf               # Cluster ECS pour les Fargate Tasks (cron)
+│   ├── iam.tf               # Roles et policies
+│   ├── ssm.tf               # Parameter Store + Secrets Manager
 │   └── outputs.tf
 │
 ├── docs/                     # Spécifications
@@ -120,8 +132,10 @@ BrightOff/
 
 ## Cron jobs
 
-- **Scraping des offres** via Bright Data — déclenchement toutes les X heures
-- **Recalcul du matching** pour tous les profils existants — déclenché après chaque nouvelle vague d'offres scrapées
+Orchestration : **EventBridge Scheduler** déclenche des **ECS Fargate Tasks** (même image Docker que l'API, entrypoint différent).
+
+- **Scraping des offres** via Bright Data — déclenchement toutes les X heures → ECS Fargate Task
+- **Recalcul du matching** pour tous les profils existants — déclenché après chaque nouvelle vague d'offres scrapées → ECS Fargate Task
 - **Envoi des notifications** email et in-app si de nouvelles offres pertinentes ont été trouvées
 
 ---
