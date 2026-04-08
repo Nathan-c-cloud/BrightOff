@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: brightoff-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-brightoff}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-brightoff_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-brightoff}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-brightoff} -d ${POSTGRES_DB:-brightoff}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: brightoff-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-brightoff}:${POSTGRES_PASSWORD:-brightoff_dev}@postgres:5432/${POSTGRES_DB:-brightoff}
+      DEBUG: "true"
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      AWS_REGION: ${AWS_REGION:-eu-west-3}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-brightoff-cvs-dev}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+
+volumes:
+  postgres_data:
+    driver: local
