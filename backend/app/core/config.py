@@ -14,7 +14,12 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
-    model_config = {"env_file": ".env"}
+    # JWT (a utiliser pour l'auth dans une task ulterieure)
+    JWT_SECRET_KEY: str = "change-me-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRATION_MINUTES: int = 60 * 24  # 24h
+
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()

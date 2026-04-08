@@ -33,6 +33,7 @@ services:
       AWS_REGION: ${AWS_REGION:-eu-west-3}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-brightoff-cvs-dev}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-local}
     ports:
       - "8000:8000"
     volumes:
