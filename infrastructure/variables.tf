@@ -44,3 +44,31 @@ variable "private_subnet_cidrs" {
   type        = list(string)
   default     = ["10.0.11.0/24", "10.0.12.0/24"]
 }
+
+# ──────────────────────────────────────────────────
+# Variables — Couche 3 : Database
+# ──────────────────────────────────────────────────
+
+variable "db_instance_class" {
+  description = "Classe d'instance RDS — db.t3.micro est éligible au Free Tier AWS (750h/mois pendant 12 mois)"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Taille du volume gp3 en Go — 20 Go est le minimum gp3, inclus dans le Free Tier"
+  type        = number
+  default     = 20
+}
+
+variable "db_name" {
+  description = "Nom de la base de données PostgreSQL créée à l'initialisation de l'instance RDS"
+  type        = string
+  default     = "brightoff"
+}
+
+variable "db_username" {
+  description = "Nom de l'utilisateur master RDS — utilisé pour les connexions depuis le backend FastAPI"
+  type        = string
+  default     = "brightoff"
+}

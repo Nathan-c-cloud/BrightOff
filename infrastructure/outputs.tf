@@ -41,3 +41,45 @@ output "rds_security_group_id" {
   description = "ID du Security Group de RDS — attaché à l'instance PostgreSQL (Couche 3)"
   value       = aws_security_group.rds.id
 }
+
+# ──────────────────────────────────────────────────
+# OUTPUTS — Couche 3 : Stockage & Data
+# ──────────────────────────────────────────────────
+
+# ── S3 ──
+
+output "s3_bucket_name" {
+  description = "Nom du bucket S3 des CVs — utilisé par le backend FastAPI pour construire les chemins d'upload/download"
+  value       = aws_s3_bucket.cvs.bucket
+}
+
+output "s3_bucket_arn" {
+  description = "ARN du bucket S3 des CVs — référencé dans les IAM policies du Task Role ECS (Couche 4)"
+  value       = aws_s3_bucket.cvs.arn
+}
+
+# ── ECR ──
+
+output "ecr_repository_url" {
+  description = "URL du repository ECR — utilisée dans le CI/CD pour pousser l'image Docker et dans la Task Definition ECS pour la puller"
+  value       = aws_ecr_repository.backend.repository_url
+}
+
+# ── RDS ──
+
+output "rds_endpoint" {
+  description = "Endpoint de connexion RDS (host:port) — référencé dans la DATABASE_URL du backend via Secrets Manager"
+  value       = aws_db_instance.main.endpoint
+}
+
+output "rds_port" {
+  description = "Port PostgreSQL de l'instance RDS (5432 par défaut)"
+  value       = aws_db_instance.main.port
+}
+
+# ── Secrets Manager ──
+
+output "db_password_secret_arn" {
+  description = "ARN du secret Secrets Manager contenant le password RDS — référencé dans le Task Role ECS pour y accéder au runtime"
+  value       = aws_secretsmanager_secret.db_password.arn
+}
