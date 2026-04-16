@@ -31,3 +31,17 @@ build/
 
 # Logs
 *.log
+
+# Terraform
+# Le répertoire de travail local généré par "terraform init" — jamais à commiter
+infrastructure/.terraform/
+# Les fichiers de state contiennent l'état réel de l'infra AWS, potentiellement des secrets
+infrastructure/*.tfstate
+infrastructure/*.tfstate.*
+# Les fichiers .tfvars contiennent les valeurs réelles (potentiellement sensibles)
+# Commiter terraform.tfvars.example (doc), jamais terraform.tfvars (secrets)
+infrastructure/*.tfvars
+# Le lock file documente les versions exactes des providers.
+# Le commiter est recommandé pour garantir la reproductibilité des déploiements en équipe.
+# En projet solo MVP, c'est au choix — décommenter la ligne ci-dessous pour l'ignorer.
+# infrastructure/.terraform.lock.hcl

@@ -1,0 +1,15 @@
+# terraform.tfvars.example
+# ──────────────────────────────────────────────────────────────────────────────
+# Copier ce fichier en "terraform.tfvars" et renseigner les vraies valeurs.
+# "terraform.tfvars" est ignoré par git (voir .gitignore) — ne jamais le commiter.
+# Ce fichier .example, lui, est commité : il documente les variables attendues.
+# ──────────────────────────────────────────────────────────────────────────────
+
+project_name = "brightoff"
+environment  = "dev"
+aws_region   = "eu-west-3"
+
+vpc_cidr             = "10.0.0.0/16"
+azs                  = ["eu-west-3a", "eu-west-3b"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
