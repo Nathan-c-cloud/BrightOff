@@ -72,3 +72,49 @@ variable "db_username" {
   type        = string
   default     = "brightoff"
 }
+
+# ──────────────────────────────────────────────────
+# Variables — Couche 4 : Secrets & Config
+# ──────────────────────────────────────────────────
+
+# ── Clés API tierces — obligatoires, pas de valeur par défaut ──
+# Ces variables sont marquées sensitive = true : Terraform masque leur valeur
+# dans les logs et les outputs de la console. Elles ne doivent jamais apparaître en clair.
+# À renseigner dans terraform.tfvars (ignoré par git) ou via les variables CI/CD.
+
+variable "anthropic_api_key" {
+  description = "Clé API Anthropic (Claude) — fournie par console.anthropic.com, commence par 'sk-ant-'"
+  type        = string
+  sensitive   = true
+}
+
+variable "openai_api_key" {
+  description = "Clé API OpenAI — fournie par platform.openai.com, commence par 'sk-'"
+  type        = string
+  sensitive   = true
+}
+
+variable "brightdata_token" {
+  description = "Token d'accès Bright Data pour le scraping — fourni par le dashboard Bright Data"
+  type        = string
+  sensitive   = true
+}
+
+# ── Config opérationnelle — valeurs par défaut orientées développement ──
+
+variable "cors_origins" {
+  description = "Origines CORS autorisées par FastAPI — en dev : localhost, en prod : domaine Vercel"
+  type        = string
+  default     = "http://localhost:3000"
+}
+
+variable "log_level" {
+  description = "Niveau de log FastAPI — DEBUG ou INFO en dev, WARNING en prod pour réduire le bruit CloudWatch"
+  type        = string
+  default     = "INFO"
+
+  validation {
+    condition     = contains(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], var.log_level)
+    error_message = "Le log level doit être DEBUG, INFO, WARNING, ERROR ou CRITICAL."
+  }
+}

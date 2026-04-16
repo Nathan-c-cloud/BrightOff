@@ -83,3 +83,37 @@ output "db_password_secret_arn" {
   description = "ARN du secret Secrets Manager contenant le password RDS — référencé dans le Task Role ECS pour y accéder au runtime"
   value       = aws_secretsmanager_secret.db_password.arn
 }
+
+# ──────────────────────────────────────────────────
+# OUTPUTS — Couche 4 : Secrets & Config
+# ──────────────────────────────────────────────────
+# On expose les ARNs des secrets Secrets Manager pour deux usages :
+#   1. La Task Definition ECS (Couche 5) en a besoin pour injecter les secrets
+#      directement dans les variables d'environnement des containers via
+#      le champ "secrets" de ECS (ECS appelle Secrets Manager au démarrage du task).
+#   2. Le Task Role IAM (Couche 5) doit avoir les permissions secretsmanager:GetSecretValue
+#      sur ces ARNs précis — pas un wildcard "*".
+#
+# Note : on ne crée PAS d'outputs pour les paramètres SSM.
+# On les référence directement par leur nom (/brightoff/dev/cors-origins) là où c'est nécessaire.
+# Les noms SSM sont prévisibles et stables — pas besoin de les propager via outputs.
+
+output "jwt_secret_arn" {
+  description = "ARN du secret JWT — référencé dans la Task Definition ECS pour injecter JWT_SECRET_KEY dans le container FastAPI"
+  value       = aws_secretsmanager_secret.jwt_secret.arn
+}
+
+output "anthropic_api_key_secret_arn" {
+  description = "ARN du secret Anthropic API Key — référencé dans la Task Definition ECS et le Task Role IAM (Couche 5)"
+  value       = aws_secretsmanager_secret.anthropic_api_key.arn
+}
+
+output "openai_api_key_secret_arn" {
+  description = "ARN du secret OpenAI API Key — référencé dans la Task Definition ECS pour injecter OPENAI_API_KEY"
+  value       = aws_secretsmanager_secret.openai_api_key.arn
+}
+
+output "brightdata_token_secret_arn" {
+  description = "ARN du secret Bright Data Token — référencé dans la Task Definition des cron jobs ECS Fargate (scraping)"
+  value       = aws_secretsmanager_secret.brightdata_token.arn
+}
