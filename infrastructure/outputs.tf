@@ -117,3 +117,26 @@ output "brightdata_token_secret_arn" {
   description = "ARN du secret Bright Data Token — référencé dans la Task Definition des cron jobs ECS Fargate (scraping)"
   value       = aws_secretsmanager_secret.brightdata_token.arn
 }
+
+# ──────────────────────────────────────────────────
+# OUTPUTS — Couche 5 : IAM Roles
+# ──────────────────────────────────────────────────
+# Ces ARNs sont référencés par les couches suivantes :
+#   - ecs_task_execution_role_arn → champ "execution_role_arn" de la Task Definition ECS (Couche 6)
+#   - ecs_task_role_arn           → champ "task_role_arn" de la Task Definition ECS (Couche 6)
+#   - eventbridge_scheduler_role_arn → champ "role_arn" des schedules EventBridge (Couche 8)
+
+output "ecs_task_execution_role_arn" {
+  description = "ARN du Task Execution Role ECS — passé à execution_role_arn dans la Task Definition (utilisé par l'agent Fargate au boot : pull ECR, inject secrets)"
+  value       = aws_iam_role.ecs_task_execution.arn
+}
+
+output "ecs_task_role_arn" {
+  description = "ARN du Task Role ECS — passé à task_role_arn dans la Task Definition (utilisé par le code FastAPI au runtime : appels S3)"
+  value       = aws_iam_role.ecs_task.arn
+}
+
+output "eventbridge_scheduler_role_arn" {
+  description = "ARN du rôle EventBridge Scheduler — passé à role_arn dans les schedules EventBridge pour qu'il puisse lancer les ECS Tasks des cron jobs"
+  value       = aws_iam_role.eventbridge_scheduler.arn
+}
