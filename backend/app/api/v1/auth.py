@@ -126,11 +126,6 @@ async def google_auth(
 
     user = await service.create_or_get_user_google(db, email, oauth_id)
 
-    # get_db ne commitant pas automatiquement, on persiste explicitement ici.
-    # Dette technique : envisager un middleware de commit automatique post-route
-    # pour homogénéiser la gestion des transactions sur tous les endpoints.
-    await db.commit()
-
     access_token = jwt.create_access_token({"sub": user.email})
 
     return TokenResponse(
