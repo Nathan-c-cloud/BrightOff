@@ -1,0 +1,32 @@
+# terraform.tfvars.example
+# ──────────────────────────────────────────────────────────────────────────────
+# Copier ce fichier en "terraform.tfvars" et renseigner les vraies valeurs.
+# "terraform.tfvars" est ignoré par git (voir .gitignore) — ne jamais le commiter.
+# Ce fichier .example, lui, est commité : il documente les variables attendues.
+# ──────────────────────────────────────────────────────────────────────────────
+
+project_name = "brightoff"
+environment  = "dev"
+aws_region   = "eu-west-3"
+
+vpc_cidr             = "10.0.0.0/16"
+azs                  = ["eu-west-3a", "eu-west-3b"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+
+# ── Couche 4 : Secrets & Config ──────────────────
+# Ces 3 variables sont OBLIGATOIRES (pas de valeur par défaut).
+# Copier les vraies clés dans terraform.tfvars (ignoré par git).
+
+# Clé Anthropic (Claude) — obtenir sur https://console.anthropic.com/
+anthropic_api_key = "sk-ant-YOUR-KEY-HERE"
+
+# Clé OpenAI — obtenir sur https://platform.openai.com/api-keys
+openai_api_key = "sk-YOUR-KEY-HERE"
+
+# Token Bright Data — obtenir sur https://brightdata.com/cp/setting/users
+brightdata_token = "YOUR-BRIGHTDATA-TOKEN-HERE"
+
+# Config opérationnelle — valeurs par défaut convenables pour le dev local
+# cors_origins = "http://localhost:3000"   # décommenter pour surcharger
+# log_level    = "INFO"                    # décommenter pour passer en DEBUG

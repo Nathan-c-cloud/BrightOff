@@ -84,9 +84,9 @@ un nouveau profil.
 ### 9. Infrastructure (Terraform)
 
 - Infrastructure as Code dès le départ
-- GCP : Cloud Run (backend), Cloud SQL PostgreSQL + pgvector (base de données), Cloud Storage (stockage CV), Cloud
-  Scheduler (cron jobs)
-- Terraform pour provisionner et gérer l'ensemble de l'infrastructure GCP
+- AWS : ECS Fargate (backend API via Cluster + ALB + Service), RDS PostgreSQL + pgvector (base de données), S3 (stockage CV), EventBridge Scheduler +
+  ECS Fargate Tasks (cron jobs), ECR (container registry), SSM Parameter Store + Secrets Manager (secrets)
+- Terraform pour provisionner et gérer l'ensemble de l'infrastructure AWS
 
 ---
 
@@ -95,12 +95,12 @@ un nouveau profil.
 | Couche            | Technologie                              | Hébergement       |
 |-------------------|------------------------------------------|-------------------|
 | Frontend          | Next.js, React, TypeScript, Tailwind CSS | Vercel            |
-| Backend           | Python, FastAPI                          | GCP Cloud Run     |
-| Base de données   | PostgreSQL + pgvector                    | GCP Cloud SQL     |
-| Stockage CV       | Fichiers PDF / DOCX                      | GCP Cloud Storage |
-| IA — CV Parser    | Claude API (Anthropic SDK)               | API externe       |
-| IA — Embeddings   | OpenAI text-embedding-3-small            | API externe       |
-| IA — Matching     | pgvector                                 | GCP Cloud SQL     |
+| Backend           | Python, FastAPI                          | AWS ECS Fargate     |
+| Base de données   | PostgreSQL 16 + pgvector                 | AWS RDS PostgreSQL  |
+| Stockage CV       | Fichiers PDF / DOCX                      | AWS S3              |
+| IA — CV Parser    | Claude API (Anthropic SDK)               | API externe         |
+| IA — Embeddings   | OpenAI text-embedding-3-small            | API externe         |
+| IA — Matching     | pgvector                                 | AWS RDS PostgreSQL  |
 | IA — Gap Analyzer | Claude API (Anthropic SDK)               | API externe       |
 | Scraping          | Bright Data                              | API externe       |
 | Authentification  | Auth.js (frontend) + JWT (backend)       | —                 |

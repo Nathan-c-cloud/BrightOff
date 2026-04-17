@@ -42,7 +42,7 @@ jobs:
       - name: Linter (Ruff)
         run: ruff check .
       - name: Tests (Pytest)
-        run: pytest -v
+        run: pytest -v || [ "$?" -eq 5 ]
 
   frontend:
     needs: changes

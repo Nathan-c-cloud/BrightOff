@@ -14,17 +14,22 @@ Mise en place de la base technique sur laquelle tout le reste sera construit.
 
 - Initialisation du projet frontend (Next.js + TypeScript + Tailwind CSS)
 - Initialisation du projet backend (FastAPI + structure modulaire)
-- Infrastructure Terraform (Cloud Run, Cloud SQL PostgreSQL + pgvector, Cloud Storage, Cloud Scheduler)
+- Infrastructure Terraform (ECS Fargate, ALB, ECR, RDS PostgreSQL + pgvector, S3, EventBridge Scheduler, VPC, IAM)
 - Schéma de base de données PostgreSQL (tables users, profiles, skills, offers, etc.)
 - Docker-compose pour le dev local (PostgreSQL + pgvector)
 - Makefile (commandes `make dev`, `make install`, etc.)
 - Configuration des linters (Ruff pour Python, ESLint pour TypeScript)
 - Définition du contrat d'API OpenAPI (Swagger) : toutes les routes prévues pour le MVP avec schémas de requête/réponse,
   retournant des réponses placeholder (501 Not Implemented). Documentation accessible sur `/docs` via Swagger UI.
+- Dockerfile backend (nécessaire pour ECS Fargate via ECR)
+- Module `core/` backend : configuration, connexion BDD, gestion des variables d'environnement
+- Fichier `.env.example` avec toutes les variables nécessaires au projet
+- Configuration CORS sur le backend (origines frontend autorisées)
+- Readme pour le projet
 
 ### Livrable
 
-Le projet tourne en local, l'infra GCP est provisionnée, le frontend affiche une page, le backend répond sur `/health`,
+Le projet tourne en local, l'infra AWS est provisionnée, le frontend affiche une page, le backend répond sur `/health`,
 et la documentation API est consultable sur `/docs`.
 
 **Dépend de :** —
@@ -55,7 +60,7 @@ Un utilisateur peut créer un compte, se connecter, et accéder à une page prot
 
 ### Tâches
 
-- Upload de CV (PDF/DOCX) vers Cloud Storage
+- Upload de CV (PDF/DOCX) vers S3
 - Intégration Claude API pour le parsing de CV
 - Extraction structurée : hard skills, soft skills, expérience, formations, langues
 - Création automatique du profil à partir du CV parsé
@@ -77,7 +82,7 @@ L'utilisateur uploade son CV, voit son profil pré-rempli par l'IA, et peut le m
 - Intégration Bright Data API
 - Scrapers pour les 3 plateformes : Welcome to the Jungle, Indeed, LinkedIn Jobs
 - Stockage des offres en base PostgreSQL
-- Cron job (Cloud Scheduler) pour le rafraîchissement régulier des offres
+- Cron job (EventBridge Scheduler) pour le rafraîchissement régulier des offres
 - Parsing et normalisation des données d'offres
 
 ### Livrable
@@ -142,7 +147,7 @@ L'utilisateur clique sur une offre, voit le gap analysis détaillé et peut cand
 - Application du design system (palette de couleurs, logo)
 - UI polish sur tous les écrans
 - Tests end-to-end
-- Déploiement production (Cloud Run pour le backend, Vercel pour le frontend)
+- Déploiement production (AWS ECS Fargate pour le backend, Vercel pour le frontend)
 - Préparation beta testing
 
 ### Livrable
