@@ -47,7 +47,7 @@ resource "random_password" "db_master" {
 
 resource "aws_secretsmanager_secret" "db_password" {
   name        = "${local.name_prefix}/rds/master-password"
-  description = "Mot de passe master de l'instance RDS PostgreSQL BrightOff"
+  description = "Master password for BrightOff RDS PostgreSQL instance"
 
   # recovery_window_in_days = 0 signifie suppression immédiate (pas de fenêtre de récupération).
   # En dev c'est pratique pour pouvoir re-créer le secret avec le même nom sans attendre 7 jours.
@@ -86,7 +86,7 @@ resource "aws_secretsmanager_secret_version" "db_password" {
 
 resource "aws_db_subnet_group" "main" {
   name        = "${local.name_prefix}-db-subnet-group"
-  description = "Subnet group RDS — subnets privés eu-west-3a et eu-west-3b"
+  description = "RDS subnet group - private subnets eu-west-3a and eu-west-3b"
 
   # values(aws_subnet.private) extrait la liste des objets subnets depuis la map for_each.
   # On récupère leurs IDs pour les passer au subnet group.

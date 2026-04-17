@@ -406,11 +406,9 @@ resource "aws_scheduler_schedule" "scraping" {
       # assign_public_ip = false : les tasks cron n'ont pas besoin d'IP publique.
       # Elles sortent vers Internet via le NAT Gateway (comme les tasks API).
       network_configuration {
-        aws_vpc_configuration {
-          subnets          = values(aws_subnet.private)[*].id
-          security_groups  = [aws_security_group.ecs.id]
-          assign_public_ip = "DISABLED"
-        }
+        subnets          = values(aws_subnet.private)[*].id
+        security_groups  = [aws_security_group.ecs.id]
+        assign_public_ip = false
       }
     }
   }
@@ -459,11 +457,9 @@ resource "aws_scheduler_schedule" "matching" {
       task_count          = 1
 
       network_configuration {
-        aws_vpc_configuration {
-          subnets          = values(aws_subnet.private)[*].id
-          security_groups  = [aws_security_group.ecs.id]
-          assign_public_ip = "DISABLED"
-        }
+        subnets          = values(aws_subnet.private)[*].id
+        security_groups  = [aws_security_group.ecs.id]
+        assign_public_ip = false
       }
     }
   }

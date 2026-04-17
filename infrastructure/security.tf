@@ -17,7 +17,7 @@
 
 resource "aws_security_group" "alb" {
   name        = "${local.name_prefix}-sg-alb"
-  description = "Security Group de l'ALB — expose HTTPS (443) et HTTP (80) vers Internet"
+  description = "SG ALB - exposes HTTPS (443) and HTTP (80) from Internet"
   vpc_id      = aws_vpc.main.id
 
   # Inbound : l'ALB doit être joignable depuis n'importe quel client sur Internet.
@@ -44,7 +44,7 @@ resource "aws_security_group" "alb" {
   # On autorise tout le trafic sortant pour ne pas bloquer les health checks AWS internes
   # et pour laisser de la flexibilité si on ajoute d'autres target groups plus tard.
   egress {
-    description = "Tout le trafic sortant — vers les ECS Tasks et health checks AWS"
+    description = "All outbound traffic - to ECS Tasks and AWS health checks"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -62,7 +62,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ecs" {
   name        = "${local.name_prefix}-sg-ecs"
-  description = "Security Group des ECS Tasks — accepte uniquement le trafic provenant de l'ALB"
+  description = "SG ECS Tasks - accepts traffic only from ALB"
   vpc_id      = aws_vpc.main.id
 
   # Inbound : on n'accepte le port 8000 (FastAPI) QUE depuis le SG de l'ALB.
@@ -70,7 +70,7 @@ resource "aws_security_group" "ecs" {
   # bonne pratique AWS : la règle reste valide même si l'IP de l'ALB change,
   # et elle n'autorise aucune autre source, même dans le même VPC.
   ingress {
-    description              = "FastAPI (8000) depuis l'ALB uniquement"
+    description              = "FastAPI (8000) from ALB only"
     from_port                = 8000
     to_port                  = 8000
     protocol                 = "tcp"
@@ -82,7 +82,7 @@ resource "aws_security_group" "ecs" {
   #   - sortir vers Internet via le NAT Gateway (Claude API, OpenAI, S3 endpoint HTTP fallback…)
   # On autorise tout le trafic sortant — le sg-rds limitera ce qui arrive côté base.
   egress {
-    description = "Tout le trafic sortant — vers RDS (VPC) et Internet via NAT Gateway"
+    description = "All outbound traffic - to RDS (VPC) and Internet via NAT Gateway"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -100,14 +100,14 @@ resource "aws_security_group" "ecs" {
 
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-sg-rds"
-  description = "Security Group de RDS — accepte PostgreSQL (5432) uniquement depuis les ECS Tasks"
+  description = "SG RDS - accepts PostgreSQL (5432) only from ECS Tasks"
   vpc_id      = aws_vpc.main.id
 
   # Inbound : RDS n'accepte des connexions PostgreSQL que depuis le SG des ECS Tasks.
   # Aucune autre ressource dans le VPC (ni l'ALB, ni un bastion hypothétique) ne peut
   # se connecter à la base de données sans modifier explicitement cette règle.
   ingress {
-    description              = "PostgreSQL (5432) depuis les ECS Tasks uniquement"
+    description              = "PostgreSQL (5432) from ECS Tasks only"
     from_port                = 5432
     to_port                  = 5432
     protocol                 = "tcp"

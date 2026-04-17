@@ -46,7 +46,7 @@ resource "random_password" "jwt_secret" {
 
 resource "aws_secretsmanager_secret" "jwt_secret" {
   name        = "${local.name_prefix}/jwt-secret"
-  description = "Clé secrète JWT pour signer et vérifier les tokens d'authentification BrightOff"
+  description = "JWT secret key for signing and verifying BrightOff auth tokens"
 
   # recovery_window_in_days = 0 : suppression immédiate du secret lors d'un terraform destroy.
   # En dev, c'est indispensable pour pouvoir recréer le secret avec le même nom sans attendre
@@ -82,7 +82,7 @@ resource "aws_secretsmanager_secret_version" "jwt_secret" {
 
 resource "aws_secretsmanager_secret" "anthropic_api_key" {
   name        = "${local.name_prefix}/anthropic-api-key"
-  description = "Clé API Anthropic (Claude) — utilisée pour le parsing CV et l'analyse de gaps"
+  description = "Anthropic API key (Claude) - used for CV parsing and gap analysis"
 
   recovery_window_in_days = 0
 
@@ -107,7 +107,7 @@ resource "aws_secretsmanager_secret_version" "anthropic_api_key" {
 
 resource "aws_secretsmanager_secret" "openai_api_key" {
   name        = "${local.name_prefix}/openai-api-key"
-  description = "Clé API OpenAI — utilisée pour générer les embeddings (text-embedding-3-small)"
+  description = "OpenAI API key - used for generating embeddings (text-embedding-3-small)"
 
   recovery_window_in_days = 0
 
@@ -131,7 +131,7 @@ resource "aws_secretsmanager_secret_version" "openai_api_key" {
 
 resource "aws_secretsmanager_secret" "brightdata_token" {
   name        = "${local.name_prefix}/brightdata-token"
-  description = "Token d'accès Bright Data — utilisé par les cron jobs de scraping des offres d'emploi"
+  description = "Bright Data access token - used by scraping cron jobs for job offers"
 
   recovery_window_in_days = 0
 
@@ -165,7 +165,7 @@ resource "aws_secretsmanager_secret_version" "brightdata_token" {
 
 resource "aws_ssm_parameter" "cors_origins" {
   name        = "/${var.project_name}/${var.environment}/cors-origins"
-  description = "Origines CORS autorisées pour l'API FastAPI — liste séparée par des virgules"
+  description = "Allowed CORS origins for FastAPI API - comma-separated list"
   type        = "String"
   value       = var.cors_origins
 
@@ -182,7 +182,7 @@ resource "aws_ssm_parameter" "cors_origins" {
 
 resource "aws_ssm_parameter" "log_level" {
   name        = "/${var.project_name}/${var.environment}/log-level"
-  description = "Niveau de log de l'application FastAPI (DEBUG, INFO, WARNING, ERROR)"
+  description = "FastAPI application log level (DEBUG, INFO, WARNING, ERROR)"
   type        = "String"
   value       = var.log_level
 
@@ -198,7 +198,7 @@ resource "aws_ssm_parameter" "log_level" {
 
 resource "aws_ssm_parameter" "app_environment" {
   name        = "/${var.project_name}/${var.environment}/app-environment"
-  description = "Environnement applicatif courant — lu par FastAPI pour adapter son comportement (ex: Swagger UI)"
+  description = "Current app environment - read by FastAPI to adapt behavior (e.g. Swagger UI)"
   type        = "String"
   value       = var.environment
 

@@ -190,7 +190,7 @@ resource "aws_ecr_lifecycle_policy" "backend" {
     rules = [
       {
         rulePriority = 1
-        description  = "Garder les 10 dernières images taguées — suppression automatique du reste"
+        description  = "Keep last 10 tagged images - auto-delete the rest"
         selection = {
           tagStatus   = "tagged"
           tagPrefixList = ["latest", "v"]
@@ -203,7 +203,7 @@ resource "aws_ecr_lifecycle_policy" "backend" {
       },
       {
         rulePriority = 2
-        description  = "Supprimer les images non-taguées après 7 jours (images orphelines de builds échoués)"
+        description  = "Delete untagged images after 7 days (orphaned images from failed builds)"
         selection = {
           tagStatus   = "untagged"
           countType   = "sinceImagePushed"
