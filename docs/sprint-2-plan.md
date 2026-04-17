@@ -63,18 +63,22 @@ Justification :
 Note : le projet utilise actuellement `JWT_ALGORITHM = "HS256"` dans `config.py`. Ce choix est maintenu pour le MVP. Si
 des tokens doivent être vérifiés par un service tiers, passer à RS256 sera trivial avec `python-jose`.
 
-### 2.2 Hashage des mots de passe — `bcrypt` vs `argon2`
+### 2.2 Hashage des mots de passe — `bcrypt` direct (révision en cours de sprint)
 
-**Choix retenu : `bcrypt` via `passlib[bcrypt]`**
+**Choix retenu : `bcrypt` directement, sans `passlib`**
 
 Justification :
 
-- `passlib` est la bibliothèque de référence dans l'écosystème Python/FastAPI ; elle abstrait l'algorithme (remplacement
-  futur par argon2 sans changer l'interface)
-- `bcrypt` est éprouvé, résistant aux attaques par force brute (facteur de coût ajustable), et supporté nativement par
-  `passlib`
-- `argon2-cffi` est le gagnant de la PHC (Password Hashing Competition, 2015) et légèrement supérieur en sécurité
-  théorique, mais `bcrypt` est suffisant pour le MVP et plus universel — **à valider avec Ismaël** si argon2 est préféré
+- `bcrypt` est maintenu activement par la Python Cryptographic Authority (pyca), API stable et simple :
+  `bcrypt.hashpw` / `bcrypt.checkpw`
+- `passlib[bcrypt]` était le choix initial, mais la bibliothèque est en maintenance dormante depuis 2020 et
+  incompatible avec `bcrypt >= 4.x` : chaque appel à `CryptContext.hash()` lève un `ValueError` au runtime — bug
+  détecté lors de l'exécution des tests unitaires du T2-11
+- Utiliser `bcrypt` directement supprime une couche d'abstraction devenue inutile et évite de figer une version
+  ancienne de `bcrypt` pour contourner l'incompatibilité
+
+Note : le choix initial était `passlib[bcrypt]==1.7.4`. Révisé pendant l'implémentation du Sprint 2 suite au bug
+d'incompatibilité détecté en test. `requirements.txt` porte maintenant `bcrypt>=5.0.0,<6.0.0`.
 
 ### 2.3 Auth.js v5 (NextAuth v5 beta)
 
@@ -104,7 +108,8 @@ variables distinctes : `JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 15` et `JWT_REFRESH_TO
 **Choix retenu : commit automatique dans la dépendance `get_db`, avec rollback sur exception (option B)**
 
 Contexte : la dépendance `get_db` initiale (`yield session`) ne commitait pas automatiquement. Chaque endpoint qui
-persistait des données devait appeler `await db.commit()` explicitement, ce qui introduisait un risque d'oubli silencieux
+persistait des données devait appeler `await db.commit()` explicitement, ce qui introduisait un risque d'oubli
+silencieux
 (données non persistées sans erreur visible).
 
 Deux options évaluées :
@@ -282,29 +287,29 @@ Dépendances : US-202, US-205
 
 ### Tableau récapitulatif
 
-| Ticket | Titre                                       | Scope    | Points | Dépend de           |
-|--------|---------------------------------------------|----------|--------|---------------------|
-| T2-01  | Dépendances auth backend                    | Backend  | 1      | —                   |
-| T2-02  | Service JWT (encode/decode/refresh)         | Backend  | 2      | T2-01               |
-| T2-03  | Service password (hash/verify)              | Backend  | 1      | T2-01               |
-| T2-04  | Service User (CRUD auth)                    | Backend  | 2      | T2-01               |
-| T2-05  | Dépendance `get_current_user` FastAPI       | Backend  | 1      | T2-02, T2-04        |
-| T2-06  | Endpoint POST /auth/register                | Backend  | 2      | T2-02, T2-03, T2-04 |
-| T2-07  | Endpoint POST /auth/login                   | Backend  | 1      | T2-02, T2-03, T2-04 |
-| T2-08  | Endpoint POST /auth/refresh                 | Backend  | 1      | T2-02               |
-| T2-09  | Endpoint GET /auth/me                       | Backend  | 1      | T2-05               |
-| T2-10  | Endpoint POST /auth/google                  | Backend  | 3      | T2-04               |
-| T2-11  | Tests unitaires services auth               | Backend  | 2      | T2-02, T2-03, T2-04 |
-| T2-12  | Tests intégration endpoints auth            | Backend  | 2      | T2-06..T2-10        |
-| T2-13  | Configuration Auth.js v5 (providers)        | Frontend | 2      | T2-06, T2-07        |
-| T2-14  | Middleware Next.js (protection routes)      | Frontend | 1      | T2-13               |
-| T2-15  | Page `/login` (email/password + Google)     | Frontend | 2      | T2-13               |
-| T2-16  | Page `/register` (formulaire inscription)   | Frontend | 2      | T2-13               |
-| T2-17  | Page `/dashboard` (placeholder protégée)    | Frontend | 1      | T2-14               |
-| T2-18  | Client API auth (fetch helpers)             | Frontend | 1      | T2-06..T2-09        |
-| T2-19  | Tests frontend (pages login/register)       | Frontend | 2      | T2-15, T2-16        |
-| T2-20  | Variables d'env Google dans Secrets Manager | Infra    | 1      | —                   |
-| T2-21  | Middleware auto-commit / rollback dans `get_db` | Backend | 1     | T2-04               |
+| Ticket | Titre                                           | Scope    | Points | Dépend de           |
+|--------|-------------------------------------------------|----------|--------|---------------------|
+| T2-01  | Dépendances auth backend                        | Backend  | 1      | —                   |
+| T2-02  | Service JWT (encode/decode/refresh)             | Backend  | 2      | T2-01               |
+| T2-03  | Service password (hash/verify)                  | Backend  | 1      | T2-01               |
+| T2-04  | Service User (CRUD auth)                        | Backend  | 2      | T2-01               |
+| T2-05  | Dépendance `get_current_user` FastAPI           | Backend  | 1      | T2-02, T2-04        |
+| T2-06  | Endpoint POST /auth/register                    | Backend  | 2      | T2-02, T2-03, T2-04 |
+| T2-07  | Endpoint POST /auth/login                       | Backend  | 1      | T2-02, T2-03, T2-04 |
+| T2-08  | Endpoint POST /auth/refresh                     | Backend  | 1      | T2-02               |
+| T2-09  | Endpoint GET /auth/me                           | Backend  | 1      | T2-05               |
+| T2-10  | Endpoint POST /auth/google                      | Backend  | 3      | T2-04               |
+| T2-11  | Tests unitaires services auth                   | Backend  | 2      | T2-02, T2-03, T2-04 |
+| T2-12  | Tests intégration endpoints auth                | Backend  | 2      | T2-06..T2-10        |
+| T2-13  | Configuration Auth.js v5 (providers)            | Frontend | 2      | T2-06, T2-07        |
+| T2-14  | Middleware Next.js (protection routes)          | Frontend | 1      | T2-13               |
+| T2-15  | Page `/login` (email/password + Google)         | Frontend | 2      | T2-13               |
+| T2-16  | Page `/register` (formulaire inscription)       | Frontend | 2      | T2-13               |
+| T2-17  | Page `/dashboard` (placeholder protégée)        | Frontend | 1      | T2-14               |
+| T2-18  | Client API auth (fetch helpers)                 | Frontend | 1      | T2-06..T2-09        |
+| T2-19  | Tests frontend (pages login/register)           | Frontend | 2      | T2-15, T2-16        |
+| T2-20  | Variables d'env Google dans Secrets Manager     | Infra    | 1      | —                   |
+| T2-21  | Middleware auto-commit / rollback dans `get_db` | Backend  | 1      | T2-04               |
 
 **Total : 32 points**
 
@@ -317,7 +322,7 @@ Dépendances : US-202, US-205
 Ajouter les bibliothèques manquantes à `requirements.txt` :
 
 - `python-jose[cryptography]` — JWT
-- `passlib[bcrypt]` — hashage mot de passe
+- `bcrypt` — hashage mot de passe
 - `google-auth` — vérification des tokens Google id_token
 
 Fichiers concernés :
@@ -357,7 +362,7 @@ Créer `backend/app/modules/auth/password.py` avec :
 - `hash_password(plain: str) -> str`
 - `verify_password(plain: str, hashed: str) -> bool`
 
-Utiliser `passlib.context.CryptContext` avec scheme `bcrypt`.
+Utiliser `bcrypt.hashpw` / `bcrypt.checkpw` directement (sans `passlib` — voir décision 2.2).
 
 Fichiers concernés :
 
@@ -754,7 +759,7 @@ frontend, l'email/password avant Google OAuth.
 
 ```
 Phase 1 — Fondations backend (jours 1-2)
-  T2-01  Dépendances pip (python-jose, passlib, google-auth)
+  T2-01  Dépendances pip (python-jose, bcrypt, google-auth)
   T2-02  Service JWT
   T2-03  Service password
   T2-04  Service User CRUD
@@ -975,13 +980,13 @@ Le sprint est terminé quand tous les critères suivants sont verts :
 
 ## 10. Estimation totale et répartition
 
-| Scope     | Tickets                  | Points |
-|-----------|--------------------------|--------|
-| Backend   | T2-01 à T2-12, T2-21    | 19     |
-| Frontend  | T2-13 à T2-19            | 11     |
-| Infra     | T2-20                    | 1      |
-| Doc       | —                        | 1      |
-| **Total** |                          | **32** |
+| Scope     | Tickets              | Points |
+|-----------|----------------------|--------|
+| Backend   | T2-01 à T2-12, T2-21 | 19     |
+| Frontend  | T2-13 à T2-19        | 11     |
+| Infra     | T2-20                | 1      |
+| Doc       | —                    | 1      |
+| **Total** |                      | **32** |
 
 Répartition indicative sur 2 semaines (10 jours ouvrés, développeur solo) :
 
