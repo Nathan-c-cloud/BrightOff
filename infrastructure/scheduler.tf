@@ -182,7 +182,7 @@ resource "aws_ecs_task_definition" "scraping" {
       secrets = [
         {
           name      = "DATABASE_PASSWORD"
-          valueFrom = aws_secretsmanager_secret.db_password.arn
+          valueFrom = "${aws_secretsmanager_secret.db_password.arn}:password::"
         },
         {
           name      = "ANTHROPIC_API_KEY"
@@ -305,7 +305,7 @@ resource "aws_ecs_task_definition" "matching" {
       secrets = [
         {
           name      = "DATABASE_PASSWORD"
-          valueFrom = aws_secretsmanager_secret.db_password.arn
+          valueFrom = "${aws_secretsmanager_secret.db_password.arn}:password::"
         },
         {
           name      = "OPENAI_API_KEY"

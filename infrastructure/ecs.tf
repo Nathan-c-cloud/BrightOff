@@ -294,12 +294,7 @@ resource "aws_ecs_task_definition" "api" {
       secrets = [
         {
           name      = "DATABASE_PASSWORD"
-          valueFrom = aws_secretsmanager_secret.db_password.arn
-          # ATTENTION : le secret db_password est stocké en JSON structuré (username, password, dbname...).
-          # Pour extraire uniquement le champ "password", on peut utiliser la notation ARN avec suffix JSON :
-          #   valueFrom = "${aws_secretsmanager_secret.db_password.arn}:password::"
-          # Ici on passe l'ARN brut — le backend devra parser le JSON pour extraire "password".
-          # Alternativement, modifier le backend pour lire DATABASE_PASSWORD comme JSON string.
+          valueFrom = "${aws_secretsmanager_secret.db_password.arn}:password::"
         },
         {
           name      = "JWT_SECRET_KEY"
