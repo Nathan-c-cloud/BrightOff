@@ -96,10 +96,37 @@ async def register(
         401: {"description": "Email ou mot de passe invalide"},
     },
 )
-async def login(payload: UserLoginRequest) -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def login(
+    payload: UserLoginRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> TokenResponse:
+    user = await service.get_user_by_email(db, payload.email)
+
+    # Message générique intentionnel : ne pas distinguer "email inconnu" de
+    # "mot de passe incorrect" pour éviter l'énumération de comptes (OWASP).
+    # Le cas hashed_password is None couvre les comptes Google-only sans password.
+    _invalid = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid email or password",
+    )
+
+    if user is None or user.hashed_password is None:
+        raise _invalid
+
+    if not password.verify_password(payload.password, user.hashed_password):
+        raise _invalid
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account disabled",
+        )
+
+    access_token = jwt.create_access_token({"sub": user.email})
+
+    return TokenResponse(
+        access_token=access_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
