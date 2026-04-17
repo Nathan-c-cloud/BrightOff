@@ -5,14 +5,18 @@ import google.auth.exceptions
 import google.auth.transport.requests
 import google.oauth2.id_token
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.modules.auth import jwt, password, service
+from app.modules.auth.jwt import JWTError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_bearer_scheme = HTTPBearer()
 
 
 # ---------- Schemas ----------
@@ -186,10 +190,32 @@ async def google_auth(
         401: {"description": "JWT manquant, expiré ou invalide"},
     },
 )
-async def refresh_token() -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def refresh_token(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),  # noqa: B008
+) -> TokenResponse:
+    _invalid = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired refresh token",
+    )
+
+    try:
+        payload = jwt.decode_token(credentials.credentials)
+    except JWTError:
+        raise _invalid from None
+
+    # Empêche l'utilisation d'un access token comme refresh token.
+    if payload.get("type") != "refresh":
+        raise _invalid
+
+    sub: str | None = payload.get("sub")
+    if sub is None:
+        raise _invalid
+
+    access_token = jwt.create_access_token({"sub": sub})
+
+    return TokenResponse(
+        access_token=access_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
