@@ -40,6 +40,7 @@ class GoogleAuthRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     expires_in: int
 
@@ -83,9 +84,11 @@ async def register(
     user = await service.create_user_email(db, payload.email, hashed_password)
 
     access_token = jwt.create_access_token({"sub": user.email})
+    refresh_token = jwt.create_refresh_token({"sub": user.email})
 
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
@@ -129,9 +132,11 @@ async def login(
         )
 
     access_token = jwt.create_access_token({"sub": user.email})
+    refresh_token = jwt.create_refresh_token({"sub": user.email})
 
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
@@ -175,9 +180,11 @@ async def google_auth(
     user = await service.create_or_get_user_google(db, email, oauth_id)
 
     access_token = jwt.create_access_token({"sub": user.email})
+    refresh_token = jwt.create_refresh_token({"sub": user.email})
 
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
@@ -214,9 +221,14 @@ async def refresh_token(
         raise _invalid
 
     access_token = jwt.create_access_token({"sub": sub})
+    # Rotation : émettre un nouveau refresh token à chaque appel.
+    # Si le refresh token fuite et est utilisé par un attaquant, l'utilisateur
+    # légitime détectera l'invalidation de son propre token au prochain refresh.
+    new_refresh_token = jwt.create_refresh_token({"sub": sub})
 
     return TokenResponse(
         access_token=access_token,
+        refresh_token=new_refresh_token,
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 

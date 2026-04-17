@@ -56,6 +56,9 @@ class TestRegister:
         assert response.status_code == 201
         data = response.json()
         assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["access_token"] != ""
+        assert data["refresh_token"] != ""
         assert data["token_type"] == "bearer"
         assert isinstance(data["expires_in"], int)
         assert data["expires_in"] > 0
@@ -158,6 +161,9 @@ class TestLogin:
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["access_token"] != ""
+        assert data["refresh_token"] != ""
         assert data["token_type"] == "bearer"
 
     @pytest.mark.asyncio
@@ -350,14 +356,17 @@ class TestRefresh:
     async def test_refresh_valid_refresh_token_returns_200_with_new_access_token(
         self, client, db_session
     ):
-        """Un refresh token valide doit retourner 200 avec un nouveau access token."""
-        # Arrange : créer un refresh token pour un utilisateur inscrit
+        """Un refresh token valide doit retourner 200 avec access token et refresh token.
+
+        Rotation : chaque appel à /refresh émet un nouveau refresh token.
+        """
+        # Arrange : inscrire l'utilisateur et récupérer le refresh token depuis la réponse register
         email = "refreshvalid@example.com"
-        await client.post(
+        register_response = await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": "securepass"},
         )
-        refresh_token = jwt_module.create_refresh_token(data={"sub": email})
+        refresh_token = register_response.json()["refresh_token"]
 
         # Act
         response = await client.post(
@@ -368,6 +377,9 @@ class TestRefresh:
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["access_token"] != ""
+        assert data["refresh_token"] != ""
         assert data["token_type"] == "bearer"
 
     @pytest.mark.asyncio
@@ -520,6 +532,9 @@ class TestGoogleAuth:
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["access_token"] != ""
+        assert data["refresh_token"] != ""
         assert data["token_type"] == "bearer"
 
         # Vérifier que le token retourné est valide et contient le bon sub
