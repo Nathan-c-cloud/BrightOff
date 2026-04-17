@@ -131,6 +131,7 @@ resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
           aws_secretsmanager_secret.anthropic_api_key.arn,
           aws_secretsmanager_secret.openai_api_key.arn,
           aws_secretsmanager_secret.brightdata_token.arn,
+          aws_secretsmanager_secret.google_client_secret.arn,
         ]
       },
       {
@@ -297,9 +298,9 @@ resource "aws_iam_role_policy" "eventbridge_scheduler_ecs" {
         #   ils n'existent pas encore. Le wildcard est ici inévitable et intentionnel.
         #   On le restreint au maximum : uniquement les task definitions de NOTRE cluster,
         #   dans NOTRE région et NOTRE compte (définis par le pattern arn:aws:ecs:region:account:*).
-        Sid    = "ECSRunTask"
-        Effect = "Allow"
-        Action = "ecs:RunTask"
+        Sid      = "ECSRunTask"
+        Effect   = "Allow"
+        Action   = "ecs:RunTask"
         Resource = "arn:aws:ecs:${var.aws_region}:*:task-definition/${local.name_prefix}-*"
       },
       {
