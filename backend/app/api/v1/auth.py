@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.modules.auth import jwt, service
+from app.modules.auth import jwt, password, service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -62,10 +62,25 @@ class UserMeResponse(BaseModel):
         422: {"description": "Données invalides (email mal formé, mot de passe trop court)"},
     },
 )
-async def register(payload: UserRegisterRequest) -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def register(
+    payload: UserRegisterRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> TokenResponse:
+    existing_user = await service.get_user_by_email(db, payload.email)
+    if existing_user is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    hashed_password = password.hash_password(payload.password)
+    user = await service.create_user_email(db, payload.email, hashed_password)
+
+    access_token = jwt.create_access_token({"sub": user.email})
+
+    return TokenResponse(
+        access_token=access_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
