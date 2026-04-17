@@ -8,6 +8,10 @@ terraform {
       # Provider >= 5.70 pour bénéficier des dernières ressources ECS et RDS pgvector
       version = ">= 5.70"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.6"
+    }
   }
 
   # State local en MVP — pas besoin d'un backend S3 partagé quand on est seul sur le projet.

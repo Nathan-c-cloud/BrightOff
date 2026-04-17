@@ -399,6 +399,11 @@ resource "aws_scheduler_schedule" "scraping" {
       launch_type         = "FARGATE"
       task_count          = 1
 
+      # NOTE : le provider aws_scheduler_schedule ne supporte pas de champ "cluster"
+      # dans ecs_parameters. Le cluster est implicitement celui du compte.
+      # En MVP avec un seul cluster, c'est OK. Si on ajoute d'autres clusters,
+      # migrer vers un target avec input JSON incluant le cluster ARN.
+
       # Configuration réseau : identique à celle du ECS Service API.
       # La task standalone a besoin des mêmes subnets privés et du même SG ECS
       # pour accéder à RDS et sortir vers Internet (Bright Data, Anthropic).

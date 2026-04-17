@@ -67,8 +67,10 @@ BrightOff/
 ### Local Development
 
 ```bash
-make dev          # Start full local environment (PostgreSQL + backend + frontend)
-make install      # Install all dependencies
+make up            # Start local services (PostgreSQL + backend via Docker)
+make run           # Start backend in dev mode (hot-reload, requires venv)
+make front-dev     # Start frontend in dev mode
+make install       # Install backend dependencies (creates venv)
 ```
 
 ### Backend
@@ -100,7 +102,7 @@ terraform init                          # Initialize providers and modules
 terraform validate                      # Validate configuration syntax
 terraform plan                          # Preview changes (dry-run)
 terraform apply                         # Apply changes to AWS
-terraform apply -target=aws_ecs_service.backend  # Apply a single resource
+terraform apply -target=aws_ecs_service.api  # Apply a single resource
 terraform destroy                       # Tear down all resources (destructive)
 ```
 

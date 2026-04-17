@@ -30,3 +30,9 @@ ignore = []
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+# Sprint 1 : pas encore de tests — empêcher pytest de planter avec exit code 5
+# quand aucun test n'est collecté. À retirer quand les premiers tests seront écrits.
+testpaths = ["tests"]
+addopts = "--no-header -rN"

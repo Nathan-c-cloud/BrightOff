@@ -14,14 +14,14 @@ Mise en place de la base technique sur laquelle tout le reste sera construit.
 
 - Initialisation du projet frontend (Next.js + TypeScript + Tailwind CSS)
 - Initialisation du projet backend (FastAPI + structure modulaire)
-- Infrastructure Terraform (App Runner, ECR, RDS PostgreSQL + pgvector, S3, EventBridge Scheduler, VPC, IAM)
+- Infrastructure Terraform (ECS Fargate, ALB, ECR, RDS PostgreSQL + pgvector, S3, EventBridge Scheduler, VPC, IAM)
 - Schéma de base de données PostgreSQL (tables users, profiles, skills, offers, etc.)
 - Docker-compose pour le dev local (PostgreSQL + pgvector)
 - Makefile (commandes `make dev`, `make install`, etc.)
 - Configuration des linters (Ruff pour Python, ESLint pour TypeScript)
 - Définition du contrat d'API OpenAPI (Swagger) : toutes les routes prévues pour le MVP avec schémas de requête/réponse,
   retournant des réponses placeholder (501 Not Implemented). Documentation accessible sur `/docs` via Swagger UI.
-- Dockerfile backend (nécessaire pour App Runner via ECR)
+- Dockerfile backend (nécessaire pour ECS Fargate via ECR)
 - Module `core/` backend : configuration, connexion BDD, gestion des variables d'environnement
 - Fichier `.env.example` avec toutes les variables nécessaires au projet
 - Configuration CORS sur le backend (origines frontend autorisées)
@@ -147,7 +147,7 @@ L'utilisateur clique sur une offre, voit le gap analysis détaillé et peut cand
 - Application du design system (palette de couleurs, logo)
 - UI polish sur tous les écrans
 - Tests end-to-end
-- Déploiement production (AWS App Runner pour le backend, Vercel pour le frontend)
+- Déploiement production (AWS ECS Fargate pour le backend, Vercel pour le frontend)
 - Préparation beta testing
 
 ### Livrable

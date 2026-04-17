@@ -84,7 +84,7 @@ un nouveau profil.
 ### 9. Infrastructure (Terraform)
 
 - Infrastructure as Code dès le départ
-- AWS : App Runner (backend), RDS PostgreSQL + pgvector (base de données), S3 (stockage CV), EventBridge Scheduler +
+- AWS : ECS Fargate (backend API via Cluster + ALB + Service), RDS PostgreSQL + pgvector (base de données), S3 (stockage CV), EventBridge Scheduler +
   ECS Fargate Tasks (cron jobs), ECR (container registry), SSM Parameter Store + Secrets Manager (secrets)
 - Terraform pour provisionner et gérer l'ensemble de l'infrastructure AWS
 
@@ -95,7 +95,7 @@ un nouveau profil.
 | Couche            | Technologie                              | Hébergement       |
 |-------------------|------------------------------------------|-------------------|
 | Frontend          | Next.js, React, TypeScript, Tailwind CSS | Vercel            |
-| Backend           | Python, FastAPI                          | AWS App Runner      |
+| Backend           | Python, FastAPI                          | AWS ECS Fargate     |
 | Base de données   | PostgreSQL 16 + pgvector                 | AWS RDS PostgreSQL  |
 | Stockage CV       | Fichiers PDF / DOCX                      | AWS S3              |
 | IA — CV Parser    | Claude API (Anthropic SDK)               | API externe         |

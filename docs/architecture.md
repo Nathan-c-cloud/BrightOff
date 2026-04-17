@@ -20,7 +20,7 @@ Date : 2026-03-21
 | Couche                 | Technologie                                    | Hébergement            |
 |------------------------|------------------------------------------------|------------------------|
 | Frontend               | Next.js, React, TypeScript, Tailwind CSS       | Vercel                 |
-| Backend                | Python, FastAPI                                | AWS App Runner         |
+| Backend                | Python, FastAPI                                | AWS ECS Fargate        |
 | Base de données        | PostgreSQL 16 + pgvector                       | AWS RDS PostgreSQL     |
 | Stockage CV            | Fichiers PDF / DOCX                            | AWS S3                 |
 | IA — CV Parser         | Claude API (Anthropic SDK)                     | API externe            |
@@ -46,18 +46,18 @@ Les données de BrightOff sont fortement relationnelles : utilisateur → profil
 PostgreSQL est le choix naturel. L'extension **pgvector** permet en complément de gérer les embeddings vectoriels
 directement dans la même base, sans service séparé.
 
-### AWS App Runner pour le backend
+### AWS ECS Fargate pour le backend
 
-App Runner est l'équivalent AWS de Cloud Run : tu fournis une image Docker via ECR, AWS gère le load balancing, le TLS,
-le scaling et les healthchecks. Simplicité maximale pour un dev solo, coût maîtrisé (~13-20 $/mois), et connexion au
-VPC privé (RDS) via VPC Connector. Les cron jobs longs (scraping, matching) sont exécutés via des ECS Fargate Tasks
-déclenchées par EventBridge Scheduler.
+ECS Fargate héberge l'API backend via un Cluster ECS, une Task Definition et un Service exposé derrière un Application
+Load Balancer (ALB). Tu fournis une image Docker via ECR, AWS gère le load balancing, le TLS (via ACM), le scaling et
+les healthchecks. Connexion au VPC privé (RDS) via les security groups. Les cron jobs longs (scraping, matching) sont
+exécutés via des ECS Fargate Tasks déclenchées par EventBridge Scheduler.
 
 ### Vercel pour le frontend
 
 Vercel est optimisé pour Next.js, propose un déploiement automatique via Git et est gratuit pour commencer. La connexion
-Vercel ↔ App Runner est triviale : appels HTTP standard, URL de l'API passée en variable d'environnement, CORS configuré
-côté FastAPI.
+Vercel ↔ ALB (ECS Fargate) est triviale : appels HTTP standard, URL de l'API passée en variable d'environnement, CORS
+configuré côté FastAPI.
 
 ### Bright Data pour le scraping
 
@@ -96,18 +96,17 @@ BrightOff/
 │   └── Dockerfile
 │
 ├── infrastructure/           # Terraform (AWS)
-│   ├── main.tf              # Provider AWS, backend state (S3 + DynamoDB)
+│   ├── providers.tf
 │   ├── variables.tf
-│   ├── vpc.tf               # VPC, subnets, route tables, Internet Gateway
-│   ├── security_groups.tf   # SG pour App Runner, RDS
-│   ├── ecr.tf               # Container registry
-│   ├── apprunner.tf         # Service App Runner
-│   ├── rds.tf               # Instance PostgreSQL + pgvector
-│   ├── s3.tf                # Bucket CV storage
-│   ├── eventbridge.tf       # Scheduler pour les cron jobs
-│   ├── ecs.tf               # Cluster ECS pour les Fargate Tasks (cron)
-│   ├── iam.tf               # Roles et policies
-│   ├── ssm.tf               # Parameter Store + Secrets Manager
+│   ├── vpc.tf
+│   ├── security.tf
+│   ├── storage.tf
+│   ├── database.tf
+│   ├── secrets.tf
+│   ├── iam.tf
+│   ├── alb.tf
+│   ├── ecs.tf
+│   ├── scheduler.tf
 │   └── outputs.tf
 │
 ├── docs/                     # Spécifications

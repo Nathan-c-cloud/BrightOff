@@ -127,7 +127,7 @@ Internet
     |
     v
 [ALB — Application Load Balancer]
-    |              (eu-west-3, HTTPS :443)
+    |              (eu-west-3, HTTP :80 — HTTPS prevu avec domaine)
     v
 [VPC 10.0.0.0/16]
   ├── Subnets publics   (10.0.1.0/24, 10.0.2.0/24)  — ALB, NAT Gateway

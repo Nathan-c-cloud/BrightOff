@@ -138,7 +138,7 @@ resource "aws_security_group" "rds" {
 
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.eu-west-3.s3"
+  service_name      = "com.amazonaws.${var.aws_region}.s3"
   vpc_endpoint_type = "Gateway"
 
   # On associe le endpoint aux route tables PRIVÉES uniquement.
