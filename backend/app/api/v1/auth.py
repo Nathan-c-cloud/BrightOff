@@ -1,8 +1,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+import google.auth.exceptions
+import google.auth.transport.requests
+import google.oauth2.id_token
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.modules.auth import jwt, service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -93,10 +101,41 @@ async def login(payload: UserLoginRequest) -> TokenResponse:
         401: {"description": "Token Google invalide"},
     },
 )
-async def google_auth(payload: GoogleAuthRequest) -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def google_auth(
+    payload: GoogleAuthRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> TokenResponse:
+    # Vérification du token Google via la bibliothèque officielle google-auth.
+    # ValueError est levée si le token est invalide, expiré ou si l'audience ne
+    # correspond pas au Client ID. GoogleAuthError couvre les erreurs d'issuer.
+    try:
+        google_request = google.auth.transport.requests.Request()
+        id_info = google.oauth2.id_token.verify_oauth2_token(
+            payload.google_token,
+            google_request,
+            settings.GOOGLE_CLIENT_ID,
+        )
+    except (ValueError, google.auth.exceptions.GoogleAuthError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Google invalide",
+        ) from None
+
+    email: str = id_info["email"]
+    oauth_id: str = id_info["sub"]
+
+    user = await service.create_or_get_user_google(db, email, oauth_id)
+
+    # get_db ne commitant pas automatiquement, on persiste explicitement ici.
+    # Dette technique : envisager un middleware de commit automatique post-route
+    # pour homogénéiser la gestion des transactions sur tous les endpoints.
+    await db.commit()
+
+    access_token = jwt.create_access_token({"sub": user.email})
+
+    return TokenResponse(
+        access_token=access_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 

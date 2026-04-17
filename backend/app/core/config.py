@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 
