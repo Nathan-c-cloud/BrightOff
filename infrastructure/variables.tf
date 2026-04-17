@@ -118,3 +118,44 @@ variable "log_level" {
     error_message = "Le log level doit être DEBUG, INFO, WARNING, ERROR ou CRITICAL."
   }
 }
+
+# ──────────────────────────────────────────────────
+# Variables — Couche 7 : ECS Compute
+# ──────────────────────────────────────────────────
+
+variable "ecs_task_cpu" {
+  description = <<-EOT
+    CPU alloué à la Task Fargate, exprimé en unités CPU (1 vCPU = 1024 unités).
+    Fargate n'accepte que des paliers prédéfinis — les combinaisons CPU/mémoire invalides
+    provoquent une erreur à l'apply. Paliers valides :
+      "256"  (0.25 vCPU) → mémoire de 512 à 2048 Mo
+      "512"  (0.5 vCPU)  → mémoire de 1024 à 4096 Mo  [MVP BrightOff]
+      "1024" (1 vCPU)    → mémoire de 2048 à 8192 Mo
+      "2048" (2 vCPU)    → mémoire de 4096 à 16384 Mo
+      "4096" (4 vCPU)    → mémoire de 8192 à 30720 Mo
+  EOT
+  type        = string
+  default     = "512"
+}
+
+variable "ecs_task_memory" {
+  description = <<-EOT
+    Mémoire allouée à la Task Fargate en Mo. Doit être compatible avec ecs_task_cpu.
+    Avec cpu = "512" (0.5 vCPU), les valeurs valides sont : 1024, 2048, 3072 ou 4096 Mo.
+    1024 Mo (1 Go) est suffisant pour FastAPI + Uvicorn en MVP avec quelques utilisateurs simultanés.
+    À augmenter si le parsing CV avec le SDK Anthropic consomme trop de mémoire (~200-400 Mo par parse).
+  EOT
+  type        = string
+  default     = "1024"
+}
+
+variable "ecs_desired_count" {
+  description = <<-EOT
+    Nombre de Tasks Fargate à maintenir en vie en permanence par le ECS Service.
+    MVP : 1 seule instance — pas de haute disponibilité, mais zéro coût de doublon.
+    En prod : 2 minimum pour survivre à la panne d'une AZ (une Task par AZ).
+    Le rolling update (min 100% / max 200%) garantit zéro downtime même avec 1 seule Task.
+  EOT
+  type        = number
+  default     = 1
+}

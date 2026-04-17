@@ -164,3 +164,26 @@ output "target_group_arn" {
   description = "ARN du Target Group backend — passé au champ load_balancers[].target_group_arn du ECS Service (Couche 7) pour que Fargate enregistre les tasks dans l'ALB au démarrage"
   value       = aws_lb_target_group.backend.arn
 }
+
+# ──────────────────────────────────────────────────
+# OUTPUTS — Couche 7 : ECS Compute
+# ──────────────────────────────────────────────────
+# Ces outputs sont utiles pour :
+#   - Les commandes CLI de debug et de monitoring (aws ecs describe-services...)
+#   - La Couche 8 (EventBridge Scheduler) qui référencera le cluster et les task definitions des cron jobs
+#   - Le CI/CD (GitHub Actions) qui doit connaître cluster + service pour déclencher un rolling update
+
+output "ecs_cluster_name" {
+  description = "Nom du cluster ECS — utilisé par EventBridge Scheduler (Couche 8) pour lancer les cron jobs dans le bon cluster, et par le CI/CD pour les commandes aws ecs update-service"
+  value       = aws_ecs_cluster.main.name
+}
+
+output "ecs_service_name" {
+  description = "Nom du ECS Service de l'API backend — utilisé par le CI/CD pour déclencher un rolling update après chaque push d'image Docker : aws ecs update-service --cluster ... --service ... --force-new-deployment"
+  value       = aws_ecs_service.api.name
+}
+
+output "ecs_task_definition_family" {
+  description = "Family name de la Task Definition ECS — identifie toutes les révisions de la task API (brightoff-dev-api:1, brightoff-dev-api:2...). Utilisé pour les rollbacks : aws ecs update-service --task-definition brightoff-dev-api:N"
+  value       = aws_ecs_task_definition.api.family
+}
