@@ -12,20 +12,20 @@ starting with fullstack/cloud developers for MVP.
 
 **Monorepo + Modular monolith** — single Git repo, single backend deployment.
 
-| Layer                        | Tech                                     | Hosting                    |
-|------------------------------|------------------------------------------|----------------------------|
-| Frontend                     | Next.js, React, TypeScript, Tailwind CSS | Vercel                     |
-| Backend                      | Python 3.12, FastAPI                     | AWS App Runner             |
-| Database                     | PostgreSQL 16 + pgvector                 | AWS RDS PostgreSQL         |
-| CV Storage                   | PDF/DOCX files                           | AWS S3                     |
-| AI (CV parse + gap analysis) | Claude API (Anthropic SDK)               | External                   |
-| AI (embeddings)              | OpenAI text-embedding-3-small            | External                   |
-| Scraping                     | Bright Data                              | External                   |
-| Auth                         | Auth.js (frontend) + JWT (backend)       | —                          |
-| Cron jobs                    | EventBridge Scheduler → ECS Fargate Tasks| AWS                        |
-| Container registry           | ECR                                      | AWS                        |
-| Secrets                      | SSM Parameter Store + Secrets Manager    | AWS                        |
-| IaC                          | Terraform                                | —                          |
+| Layer                        | Tech                                      | Hosting                                   |
+|------------------------------|-------------------------------------------|-------------------------------------------|
+| Frontend                     | Next.js, React, TypeScript, Tailwind CSS  | Vercel                                    |
+| Backend                      | Python 3.12, FastAPI                      | AWS ECS Fargate (Cluster + ALB + Service) |
+| Database                     | PostgreSQL 16 + pgvector                  | AWS RDS PostgreSQL                        |
+| CV Storage                   | PDF/DOCX files                            | AWS S3                                    |
+| AI (CV parse + gap analysis) | Claude API (Anthropic SDK)                | External                                  |
+| AI (embeddings)              | OpenAI text-embedding-3-small             | External                                  |
+| Scraping                     | Bright Data                               | External                                  |
+| Auth                         | Auth.js (frontend) + JWT (backend)        | —                                         |
+| Cron jobs                    | EventBridge Scheduler → ECS Fargate Tasks | AWS                                       |
+| Container registry           | ECR                                       | AWS                                       |
+| Secrets                      | SSM Parameter Store + Secrets Manager     | AWS                                       |
+| IaC                          | Terraform                                 | —                                         |
 
 ## Project Structure
 
@@ -44,6 +44,18 @@ BrightOff/
 │       ├── core/      # Config, DB, security
 │       └── jobs/      # Cron jobs (scraping, matching, notifications)
 ├── infrastructure/    # Terraform (AWS)
+│   ├── providers.tf   # AWS provider + version
+│   ├── variables.tf   # Variables configurables
+│   ├── vpc.tf         # VPC, subnets, IGW, NAT, routes
+│   ├── security.tf    # Security Groups + VPC Endpoint S3
+│   ├── storage.tf     # S3 bucket CVs + ECR repository
+│   ├── database.tf    # RDS PostgreSQL 16 + Secrets Manager
+│   ├── secrets.tf     # API keys (Anthropic, OpenAI, Bright Data, JWT)
+│   ├── iam.tf         # IAM roles (Task Execution, Task, EventBridge)
+│   ├── alb.tf         # Application Load Balancer + Target Group
+│   ├── ecs.tf         # ECS Cluster + Task Definition + Service
+│   ├── scheduler.tf   # EventBridge cron jobs (scraping, matching)
+│   └── outputs.tf     # Exported values
 ├── docs/              # Specifications (vision, features, architecture, MVP, roadmap, design)
 ├── assets/            # Logo (logo.png), mockups reference (maquettes/)
 ├── docker-compose.yml # Local dev (PostgreSQL + pgvector)
@@ -84,10 +96,46 @@ npm run build                       # Production build
 
 ```bash
 cd infrastructure
-terraform init
-terraform plan
-terraform apply
+terraform init                          # Initialize providers and modules
+terraform validate                      # Validate configuration syntax
+terraform plan                          # Preview changes (dry-run)
+terraform apply                         # Apply changes to AWS
+terraform apply -target=aws_ecs_service.backend  # Apply a single resource
+terraform destroy                       # Tear down all resources (destructive)
 ```
+
+Useful AWS CLI commands for ECS:
+
+```bash
+# Force a new deployment (pulls latest ECR image)
+aws ecs update-service --cluster brightoff-dev-cluster --service brightoff-dev-api-service --force-new-deployment
+
+# List running tasks
+aws ecs list-tasks --cluster brightoff-dev-cluster --service-name brightoff-dev-api-service
+
+# Follow container logs
+aws logs tail /ecs/brightoff-dev-api --follow
+```
+
+## Infrastructure AWS
+
+**Region:** eu-west-3 (Paris) — RGPD compliance and France latency.
+
+| Service               | Usage                                                        |
+|-----------------------|--------------------------------------------------------------|
+| ECS Fargate           | Backend FastAPI (Cluster + Task Definition + Service)        |
+| ALB                   | Application Load Balancer — HTTPS ingress to ECS             |
+| ECR                   | Docker image registry                                        |
+| RDS PostgreSQL 16     | Primary database + pgvector extension                        |
+| S3                    | CV file storage (PDF/DOCX)                                   |
+| Secrets Manager       | DB password, JWT secret, API keys                            |
+| EventBridge Scheduler | Cron jobs → ECS Fargate Tasks (scraping, matching)           |
+| VPC                   | Isolated network (public subnets: ALB/NAT, private: ECS/RDS) |
+
+**Terraform state:** local (MVP). No shared backend — if the team grows, migrate to S3 + DynamoDB lock.
+
+**Secrets:** `terraform.tfvars` holds all sensitive variables (API keys, etc.) and is listed in `.gitignore`. Never
+commit it.
 
 ## CI Pipeline
 
