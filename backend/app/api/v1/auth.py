@@ -11,8 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.modules.auth import jwt, password, service
 from app.modules.auth.jwt import JWTError
+from app.modules.auth.models import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -229,8 +231,12 @@ async def refresh_token(
         401: {"description": "JWT manquant, expiré ou invalide"},
     },
 )
-async def get_me() -> UserMeResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def get_me(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> UserMeResponse:
+    return UserMeResponse(
+        id=current_user.id,
+        email=current_user.email,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
     )
