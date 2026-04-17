@@ -187,3 +187,21 @@ output "ecs_task_definition_family" {
   description = "Family name de la Task Definition ECS — identifie toutes les révisions de la task API (brightoff-dev-api:1, brightoff-dev-api:2...). Utilisé pour les rollbacks : aws ecs update-service --task-definition brightoff-dev-api:N"
   value       = aws_ecs_task_definition.api.family
 }
+
+# ──────────────────────────────────────────────────
+# OUTPUTS — Couche 8 : Scheduling EventBridge
+# ──────────────────────────────────────────────────
+# Ces outputs permettent de retrouver facilement les schedules en CLI pour les désactiver,
+# modifier leur fréquence ou vérifier leur dernier lancement :
+#   aws scheduler get-schedule --name brightoff-dev-scraping-schedule
+#   aws scheduler update-schedule --name brightoff-dev-scraping-schedule --state DISABLED ...
+
+output "scraping_schedule_name" {
+  description = "Nom du schedule EventBridge Scheduler du scraping — déclenche le job de scraping des offres d'emploi toutes les 6h via ECS Fargate"
+  value       = aws_scheduler_schedule.scraping.name
+}
+
+output "matching_schedule_name" {
+  description = "Nom du schedule EventBridge Scheduler du matching — déclenche le recalcul des scores de matching tous les jours à 3h UTC via ECS Fargate"
+  value       = aws_scheduler_schedule.matching.name
+}
