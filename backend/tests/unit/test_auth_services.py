@@ -12,7 +12,7 @@ Note sur JWT_SECRET_KEY :
     suites de tests éventuellement exécutées dans la même session.
 """
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 
 import pytest
 
@@ -136,14 +136,14 @@ class TestCreateAccessToken:
 
     def test_create_access_token_contains_exp(self):
         """Le token doit inclure un claim 'exp' (expiration) positionné dans le futur."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         token = create_access_token(data={"sub": "user@example.com"})
         payload = decode_token(token)
 
         # jose retourne exp sous forme de timestamp entier
         exp = payload["exp"]
-        assert exp > datetime.now(tz=timezone.utc).timestamp()
+        assert exp > datetime.now(tz=UTC).timestamp()
 
     def test_create_access_token_returns_string(self):
         """create_access_token doit retourner une chaîne non vide."""
