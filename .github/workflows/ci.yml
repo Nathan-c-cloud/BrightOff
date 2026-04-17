@@ -42,7 +42,13 @@ jobs:
       - name: Linter (Ruff)
         run: ruff check .
       - name: Tests (Pytest)
-        run: pytest -v
+        run: |
+          pytest -v; status=$?
+          if [ $status -eq 5 ]; then
+            echo "No tests collected yet — OK for Sprint 1"
+            exit 0
+          fi
+          exit $status
 
   frontend:
     needs: changes
