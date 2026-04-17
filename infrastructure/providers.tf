@@ -4,7 +4,7 @@ terraform {
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
+      source = "hashicorp/aws"
       # Provider >= 5.70 pour bénéficier des dernières ressources ECS et RDS pgvector
       version = ">= 5.70"
     }
