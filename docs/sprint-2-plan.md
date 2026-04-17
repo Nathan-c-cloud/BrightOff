@@ -99,6 +99,23 @@ Points d'attention :
 Note : la config actuelle dans `config.py` définit `JWT_EXPIRATION_MINUTES = 1440` (24h). Elle sera remplacée par deux
 variables distinctes : `JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 15` et `JWT_REFRESH_TOKEN_EXPIRE_DAYS = 7`.
 
+### 2.6 Pattern auto-commit / rollback dans `get_db`
+
+**Choix retenu : commit automatique dans la dépendance `get_db`, avec rollback sur exception (option B)**
+
+Contexte : la dépendance `get_db` initiale (`yield session`) ne commitait pas automatiquement. Chaque endpoint qui
+persistait des données devait appeler `await db.commit()` explicitement, ce qui introduisait un risque d'oubli silencieux
+(données non persistées sans erreur visible).
+
+Deux options évaluées :
+
+- **Option A** : commit explicite dans chaque endpoint — simple à comprendre mais fragile, dépend de la rigueur du
+  développeur à chaque nouvel endpoint
+- **Option B** : commit automatique dans `get_db` via `try/yield/except` — la session se commit si l'endpoint se termine
+  sans exception, se rollback sinon
+
+**Option B retenue** (décision Ismaël, 2026-04-17). Pattern appliqué dans T2-21 (voir section 4).
+
 ### 2.5 Flux Google OAuth
 
 Auth.js v5 côté frontend gère le redirect OAuth complet (Authorization Code Flow). Le backend reçoit uniquement un token
@@ -287,8 +304,9 @@ Dépendances : US-202, US-205
 | T2-18  | Client API auth (fetch helpers)             | Frontend | 1      | T2-06..T2-09        |
 | T2-19  | Tests frontend (pages login/register)       | Frontend | 2      | T2-15, T2-16        |
 | T2-20  | Variables d'env Google dans Secrets Manager | Infra    | 1      | —                   |
+| T2-21  | Middleware auto-commit / rollback dans `get_db` | Backend | 1     | T2-04               |
 
-**Total : 31 points**
+**Total : 32 points**
 
 ---
 
@@ -676,6 +694,39 @@ Dépendances : T2-15, T2-16
 
 ---
 
+#### T2-21 — Middleware auto-commit / rollback dans `get_db`
+
+Modifier `backend/app/core/database.py` pour que la dépendance `get_db` gère automatiquement le commit et le rollback :
+
+```python
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+```
+
+Ce pattern garantit que :
+
+- tout endpoint qui se termine normalement persiste ses données sans `await db.commit()` explicite
+- toute exception déclenche un rollback automatique — aucune donnée partielle n'est persistée
+
+Après cette modification, retirer le `await db.commit()` explicite de `google_auth()` dans `auth.py` (devenu redondant).
+Les endpoints T2-06, T2-07 et T2-10 bénéficient du commit automatique sans modification de leur logique.
+
+Fichiers concernés :
+
+- `backend/app/core/database.py` — modifier la fonction `get_db`
+- `backend/app/api/v1/auth.py` — retirer le `await db.commit()` explicite dans `google_auth()` si présent
+
+Estimation : 1 point
+Dépendances : T2-04 (service User — premier consommateur de la session)
+
+---
+
 #### T2-20 — Variables d'env Google dans Secrets Manager
 
 Ajouter les secrets `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` dans AWS Secrets Manager (eu-west-3) une fois les
@@ -709,6 +760,7 @@ Phase 1 — Fondations backend (jours 1-2)
   T2-04  Service User CRUD
 
 Phase 2 — Routes backend email/password (jours 3-4)
+  T2-21  Auto-commit / rollback dans get_db (à faire avant tout endpoint qui persiste)
   T2-05  Dépendance get_current_user
   T2-06  POST /auth/register
   T2-07  POST /auth/login
@@ -923,13 +975,13 @@ Le sprint est terminé quand tous les critères suivants sont verts :
 
 ## 10. Estimation totale et répartition
 
-| Scope     | Tickets       | Points |
-|-----------|---------------|--------|
-| Backend   | T2-01 à T2-12 | 18     |
-| Frontend  | T2-13 à T2-19 | 11     |
-| Infra     | T2-20         | 1      |
-| Doc       | —             | 1      |
-| **Total** |               | **31** |
+| Scope     | Tickets                  | Points |
+|-----------|--------------------------|--------|
+| Backend   | T2-01 à T2-12, T2-21    | 19     |
+| Frontend  | T2-13 à T2-19            | 11     |
+| Infra     | T2-20                    | 1      |
+| Doc       | —                        | 1      |
+| **Total** |                          | **32** |
 
 Répartition indicative sur 2 semaines (10 jours ouvrés, développeur solo) :
 
