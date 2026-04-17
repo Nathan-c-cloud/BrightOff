@@ -140,3 +140,27 @@ output "eventbridge_scheduler_role_arn" {
   description = "ARN du rôle EventBridge Scheduler — passé à role_arn dans les schedules EventBridge pour qu'il puisse lancer les ECS Tasks des cron jobs"
   value       = aws_iam_role.eventbridge_scheduler.arn
 }
+
+# ──────────────────────────────────────────────────
+# OUTPUTS — Couche 6 : Load Balancing
+# ──────────────────────────────────────────────────
+# Ces outputs sont référencés par :
+#   - alb_dns_name       → URL temporaire d'accès à l'app (sans domaine propre)
+#   - alb_arn            → référencé si on ajoute un WAF ou des règles avancées plus tard
+#   - target_group_arn   → passé à "load_balancers[].target_group_arn" dans le ECS Service (Couche 7)
+#                          pour que Fargate enregistre automatiquement les tasks dans le TG au démarrage
+
+output "alb_dns_name" {
+  description = "DNS public de l'ALB — URL d'accès temporaire à l'API FastAPI (ex: brightoff-dev-alb-123456789.eu-west-3.elb.amazonaws.com). À remplacer par le domaine propre quand il sera acheté."
+  value       = aws_lb.main.dns_name
+}
+
+output "alb_arn" {
+  description = "ARN de l'ALB — référencé si on attache un WAF (aws_wafv2_web_acl_association) ou des règles de routage avancées"
+  value       = aws_lb.main.arn
+}
+
+output "target_group_arn" {
+  description = "ARN du Target Group backend — passé au champ load_balancers[].target_group_arn du ECS Service (Couche 7) pour que Fargate enregistre les tasks dans l'ALB au démarrage"
+  value       = aws_lb_target_group.backend.arn
+}
