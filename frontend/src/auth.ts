@@ -192,8 +192,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     /**
      * Provider Google — OAuth 2.0 standard
      *
-     * GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont lus automatiquement
-     * par Auth.js depuis les variables d'env (convention Auth.js v5).
+     * AUTH_GOOGLE_ID et AUTH_GOOGLE_SECRET sont lus automatiquement
+     * par Auth.js v5 depuis les variables d'env (convention AUTH_<PROVIDER>_<FIELD>).
      * Redirect URI : http://localhost:3000/api/auth/callback/google
      */
     Google,
