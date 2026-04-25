@@ -4,6 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.auth.models import User
 
 
+class EmailAlreadyRegisteredError(Exception):
+    """Levée quand un email existe déjà en base avec un autre provider que Google.
+
+    Séparation des couches : le service ne connaît pas HTTP — c'est l'endpoint
+    qui transforme cette exception en 409 Conflict.
+    """
+
+
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     """Retourne l'utilisateur correspondant à l'email, ou None."""
     stmt = select(User).where(User.email == email)
@@ -28,9 +36,12 @@ async def create_or_get_user_google(db: AsyncSession, email: str, oauth_id: str)
     """Retourne l'utilisateur Google existant ou en crée un nouveau."""
     user = await get_user_by_email(db, email)
     if user is not None:
-        if user.oauth_provider != "google" or user.oauth_id != oauth_id:
-            user = await link_google_to_existing_user(db, user, oauth_id)
-        return user
+        if user.oauth_provider == "google" and user.oauth_id == oauth_id:
+            # Même compte Google déjà connu — retour direct.
+            return user
+        # Email déjà enregistré via un autre provider (email/password ou autre OAuth).
+        # On refuse la liaison automatique pour éviter l'usurpation de compte.
+        raise EmailAlreadyRegisteredError(email)
 
     user = User(
         email=email,

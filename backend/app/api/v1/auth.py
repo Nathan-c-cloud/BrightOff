@@ -15,6 +15,7 @@ from app.core.security import get_current_user
 from app.modules.auth import jwt, password, service
 from app.modules.auth.jwt import JWTError
 from app.modules.auth.models import User
+from app.modules.auth.service import EmailAlreadyRegisteredError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -151,7 +152,8 @@ async def login(
         "un compte est créé automatiquement."
     ),
     responses={
-        401: {"description": "Token Google invalide"},
+        401: {"description": "Token Google invalide ou email non vérifié"},
+        409: {"description": "Un compte avec cet email existe déjà (autre provider)"},
     },
 )
 async def google_auth(
@@ -174,10 +176,23 @@ async def google_auth(
             detail="Token Google invalide",
         ) from None
 
+    # Refuser les tokens dont l'email n'a pas été vérifié par Google.
+    if not id_info.get("email_verified"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google email not verified",
+        )
+
     email: str = id_info["email"]
     oauth_id: str = id_info["sub"]
 
-    user = await service.create_or_get_user_google(db, email, oauth_id)
+    try:
+        user = await service.create_or_get_user_google(db, email, oauth_id)
+    except EmailAlreadyRegisteredError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists. Please sign in with your password.",
+        ) from None
 
     access_token = jwt.create_access_token({"sub": user.email})
     refresh_token = jwt.create_refresh_token({"sub": user.email})
@@ -201,6 +216,7 @@ async def google_auth(
 )
 async def refresh_token(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> TokenResponse:
     _invalid = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -219,6 +235,18 @@ async def refresh_token(
     sub: str | None = payload.get("sub")
     if sub is None:
         raise _invalid
+
+    # Vérifier que l'utilisateur existe encore et est actif : un compte désactivé
+    # ne doit pas pouvoir renouveler ses tokens pendant toute la durée du refresh token.
+    user = await service.get_user_by_email(db, sub)
+    if user is None:
+        raise _invalid
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account disabled",
+        )
 
     access_token = jwt.create_access_token({"sub": sub})
     # Rotation : émettre un nouveau refresh token à chaque appel.
