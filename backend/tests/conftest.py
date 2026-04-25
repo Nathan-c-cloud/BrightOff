@@ -20,11 +20,16 @@ Prérequis :
     - La base `brightoff_test` doit exister (créée automatiquement par la fixture
       `db_engine` via `CREATE DATABASE brightoff_test` si absente, ou utiliser
       `createdb brightoff_test` en amont).
-    - Variable d'env TEST_DATABASE_URL ou la valeur par défaut ci-dessous.
+    - Les credentials sont lus depuis `backend/.env` via `settings.DATABASE_URL`
+      (source unique de vérité, cohérente avec `make run`). Aucune variable
+      POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_HOST / POSTGRES_PORT à exporter.
+    - Override possible : exporter `TEST_DATABASE_URL` (CI) ou `TEST_POSTGRES_DB`
+      (nom de la base, défaut `brightoff_test`).
 """
 
 import os
 from collections.abc import AsyncGenerator
+from urllib.parse import urlparse, urlunparse
 
 import pytest
 import pytest_asyncio
@@ -41,16 +46,23 @@ from app.main import app
 # Configuration
 # ---------------------------------------------------------------------------
 
-_PG_USER = os.getenv("POSTGRES_USER", "brightoff")
-_PG_PASSWORD = os.getenv("POSTGRES_PASSWORD", "brightoff_dev")
-_PG_HOST = os.getenv("POSTGRES_HOST", "localhost")
-_PG_PORT = os.getenv("POSTGRES_PORT", "5432")
-_PG_TEST_DB = os.getenv("TEST_POSTGRES_DB", "brightoff_test")
+def _build_test_database_url() -> str:
+    """Dérive TEST_DATABASE_URL depuis settings.DATABASE_URL en substituant le nom de la DB.
 
-TEST_DATABASE_URL = os.getenv(
-    "TEST_DATABASE_URL",
-    f"postgresql+asyncpg://{_PG_USER}:{_PG_PASSWORD}@{_PG_HOST}:{_PG_PORT}/{_PG_TEST_DB}",
-)
+    Source unique de vérité : backend/.env (chargé par Pydantic Settings).
+    Override possible via :
+      - TEST_DATABASE_URL : remplace intégralement l'URL (CI ou env custom)
+      - TEST_POSTGRES_DB  : remplace uniquement le nom de la base (défaut : brightoff_test)
+    """
+    explicit = os.getenv("TEST_DATABASE_URL")
+    if explicit:
+        return explicit
+    test_db_name = os.getenv("TEST_POSTGRES_DB", "brightoff_test")
+    parsed = urlparse(settings.DATABASE_URL)
+    return urlunparse(parsed._replace(path=f"/{test_db_name}"))
+
+
+TEST_DATABASE_URL = _build_test_database_url()
 
 TEST_JWT_SECRET = "integration-test-secret-key-do-not-use-in-prod"
 
