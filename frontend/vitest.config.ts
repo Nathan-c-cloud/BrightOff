@@ -10,6 +10,8 @@ export default defineConfig({
     react(),
   ],
   test: {
+    // pool: "forks" explicite — le pool par défaut (threads) provoque des timeouts worker sous WSL2 + Vitest 4 + next-auth v5
+    pool: "forks",
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],

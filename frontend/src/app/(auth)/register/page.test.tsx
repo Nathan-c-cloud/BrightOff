@@ -19,12 +19,12 @@ import userEvent from "@testing-library/user-event";
 // Mocks de modules
 // ---------------------------------------------------------------------------
 
-const mockSignIn = vi.fn();
+const mockSignIn = vi.hoisted(() => vi.fn());
 vi.mock("next-auth/react", () => ({
   signIn: mockSignIn,
 }));
 
-const mockRouterPush = vi.fn();
+const mockRouterPush = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockRouterPush,

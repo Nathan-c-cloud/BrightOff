@@ -19,14 +19,14 @@ import userEvent from "@testing-library/user-event";
 // ---------------------------------------------------------------------------
 
 // Mock next-auth/react : on expose signIn comme spy contrôlable par test
-const mockSignIn = vi.fn();
+const mockSignIn = vi.hoisted(() => vi.fn());
 vi.mock("next-auth/react", () => ({
   signIn: mockSignIn,
 }));
 
 // Mock next/navigation : useSearchParams retourne un URLSearchParams vide par défaut.
 // Certains tests le surchargeront via mockReturnValueOnce.
-const mockGetSearchParam = vi.fn();
+const mockGetSearchParam = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
   useSearchParams: () => ({
     get: mockGetSearchParam,
