@@ -518,6 +518,7 @@ class TestGoogleAuth:
         mock_id_info = {
             "email": "googleuser@example.com",
             "sub": "google-oauth-id-12345",
+            "email_verified": True,  # M-003 : requis depuis le check email_verified
         }
 
         with patch(
@@ -553,7 +554,11 @@ class TestGoogleAuth:
 
         email = "googlenewuser@example.com"
         oauth_id = "google-sub-unique-9999"
-        mock_id_info = {"email": email, "sub": oauth_id}
+        mock_id_info = {
+            "email": email,
+            "sub": oauth_id,
+            "email_verified": True,  # M-003 : requis depuis le check email_verified
+        }
 
         with patch(
             "google.oauth2.id_token.verify_oauth2_token",
@@ -573,3 +578,28 @@ class TestGoogleAuth:
         assert user.oauth_provider == "google"
         assert user.oauth_id == oauth_id
         assert user.hashed_password is None
+
+    @pytest.mark.asyncio
+    async def test_google_unverified_email_returns_401(self, client, db_session):
+        """Un token Google avec email non vérifié (email_verified=False) doit retourner 401.
+
+        Vérifie le check M-003 : l'endpoint rejette explicitement les comptes Google
+        dont l'email n'a pas été confirmé par Google, avant toute création en base.
+        """
+        mock_id_info = {
+            "email": "alice@example.com",
+            "sub": "google-id-123",
+            "email_verified": False,
+        }
+
+        with patch(
+            "google.oauth2.id_token.verify_oauth2_token",
+            return_value=mock_id_info,
+        ):
+            response = await client.post(
+                "/api/v1/auth/google",
+                json={"google_token": "mocked-unverified-google-token"},
+            )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Google email not verified"
