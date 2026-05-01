@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -55,7 +55,11 @@ function resolveErrorMessage(errorCode: string | null): string | null {
   }
 }
 
-export default function LoginPage() {
+/**
+ * Composant interne qui utilise useSearchParams() — doit être isolé dans un
+ * Suspense boundary pour éviter l'erreur Next.js au build (CSR bailout).
+ */
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Auth.js redirige vers /login?error=<code> après une erreur OAuth ou AccountDisabled
@@ -262,5 +266,18 @@ export default function LoginPage() {
         </Link>
       </p>
     </>
+  );
+}
+
+/**
+ * Page de connexion exportée par défaut.
+ * LoginForm est isolé dans un Suspense boundary car il appelle useSearchParams(),
+ * ce qui provoque un CSR bailout si la page n'est pas enveloppée.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
