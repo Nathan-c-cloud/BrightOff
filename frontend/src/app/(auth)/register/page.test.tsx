@@ -110,7 +110,7 @@ describe("RegisterPage", () => {
   // Validation client — mot de passe trop court
   // -------------------------------------------------------------------------
 
-  it("displays_error_when_password_is_shorter_than_8_chars_and_does_not_call_registerUser", async () => {
+  it("displays_error_when_password_is_shorter_than_10_chars_and_does_not_call_registerUser", async () => {
     render(<RegisterPage />);
     const user = userEvent.setup();
 
@@ -123,10 +123,56 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: /s'inscrire/i }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Le mot de passe doit contenir au moins 8 caractères."
+      "Le mot de passe doit contenir au moins 10 caractères."
     );
     // registerUser ne doit pas être appelé si la validation client bloque
     expect(mockRegisterUser).not.toHaveBeenCalled();
+  });
+
+  it("displays_error_when_password_is_exactly_9_chars_and_does_not_call_registerUser", async () => {
+    render(<RegisterPage />);
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/^email$/i), "alice@example.com");
+    // 9 caractères exactement — doit être rejeté (seuil est 10)
+    await user.type(screen.getByLabelText(/^mot de passe$/i), "neufchars");
+    await user.type(
+      screen.getByLabelText(/confirmer le mot de passe/i),
+      "neufchars"
+    );
+    await user.click(screen.getByRole("button", { name: /s'inscrire/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Le mot de passe doit contenir au moins 10 caractères."
+    );
+    expect(mockRegisterUser).not.toHaveBeenCalled();
+  });
+
+  it("does_not_display_error_when_password_is_exactly_10_chars", async () => {
+    mockRegisterUser.mockResolvedValueOnce({
+      access_token: "tok",
+      refresh_token: "ref",
+      token_type: "bearer",
+      expires_in: 1800,
+    });
+    mockSignIn.mockResolvedValueOnce({ error: null, url: "/dashboard" });
+
+    render(<RegisterPage />);
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/^email$/i), "alice@example.com");
+    // 10 caractères exactement — doit être accepté
+    await user.type(screen.getByLabelText(/^mot de passe$/i), "dixcaracts!");
+    await user.type(
+      screen.getByLabelText(/confirmer le mot de passe/i),
+      "dixcaracts!"
+    );
+    await user.click(screen.getByRole("button", { name: /s'inscrire/i }));
+
+    await waitFor(() => {
+      expect(mockRegisterUser).toHaveBeenCalledOnce();
+      expect(mockRegisterUser).toHaveBeenCalledWith("alice@example.com", "dixcaracts!");
+    });
   });
 
   // -------------------------------------------------------------------------

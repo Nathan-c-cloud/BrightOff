@@ -128,13 +128,39 @@ class TestRegister:
 
     @pytest.mark.asyncio
     async def test_register_password_too_short_returns_422(self, client, db_session):
-        """Un mot de passe de moins de 8 caractères doit retourner 422."""
+        """Un mot de passe de moins de 10 caractères doit retourner 422."""
         response = await client.post(
             "/api/v1/auth/register",
             json={"email": "short@example.com", "password": "short"},
         )
 
         assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_register_password_9_chars_returns_422(self, client, db_session):
+        """Un mot de passe de 9 caractères exactement doit retourner 422.
+
+        Vérifie le seuil exact : 9 < 10, donc rejeté par Pydantic Field(min_length=10).
+        """
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "ninechars@example.com", "password": "neufchars"},
+        )
+
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_register_password_10_chars_returns_201(self, client, db_session):
+        """Un mot de passe de 10 caractères exactement doit être accepté (retourne 201).
+
+        Vérifie le seuil exact : 10 >= 10, donc accepté par Pydantic Field(min_length=10).
+        """
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "tenchars@example.com", "password": "dixcaracts!"},
+        )
+
+        assert response.status_code == 201
 
 
 # ---------------------------------------------------------------------------

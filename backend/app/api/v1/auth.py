@@ -27,7 +27,7 @@ _bearer_scheme = HTTPBearer()
 
 class UserRegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=10)
 
 
 class UserLoginRequest(BaseModel):
