@@ -209,9 +209,13 @@ async def google_auth(
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Renouveler le JWT",
-    description=("Renouvelle le JWT de l'utilisateur connecté. Nécessite un JWT valide."),
+    description=(
+        "Renouvelle la paire de tokens à partir d'un refresh token valide. "
+        "Fournir le refresh token (et non l'access token) dans le header Authorization: Bearer."
+    ),
     responses={
-        401: {"description": "JWT manquant, expiré ou invalide"},
+        401: {"description": "Refresh token manquant, expiré ou invalide"},
+        403: {"description": "Header Authorization absent (Bearer requis)"},
     },
 )
 async def refresh_token(
@@ -249,9 +253,11 @@ async def refresh_token(
         )
 
     access_token = jwt.create_access_token({"sub": sub})
-    # Rotation : émettre un nouveau refresh token à chaque appel.
-    # Si le refresh token fuite et est utilisé par un attaquant, l'utilisateur
-    # légitime détectera l'invalidation de son propre token au prochain refresh.
+    # Note : ceci n'est PAS une rotation effective. Sans stockage côté serveur
+    # (jti persisté + invalidation atomique), l'ancien refresh token reste
+    # valide jusqu'à expiration. Émettre un nouveau token côté client est
+    # simplement une bonne pratique côté UX. La rotation effective est listée
+    # en dette technique (voir docs/dette-technique-sprint-2.md, H-005).
     new_refresh_token = jwt.create_refresh_token({"sub": sub})
 
     return TokenResponse(
