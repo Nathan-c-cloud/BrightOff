@@ -12,7 +12,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> User:
     """Dépendance FastAPI qui valide le JWT et retourne l'utilisateur courant.
 
@@ -29,7 +29,7 @@ async def get_current_user(
     try:
         payload = decode_token(token)
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception from None
 
     # Rejeter les refresh tokens utilisés à la place d'un access token
     if payload.get("type") != "access":
