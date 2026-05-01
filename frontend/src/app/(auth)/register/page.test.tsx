@@ -162,16 +162,16 @@ describe("RegisterPage", () => {
 
     await user.type(screen.getByLabelText(/^email$/i), "alice@example.com");
     // 10 caractères exactement — doit être accepté
-    await user.type(screen.getByLabelText(/^mot de passe$/i), "dixcaracts!");
+    await user.type(screen.getByLabelText(/^mot de passe$/i), "dixcaracts");
     await user.type(
       screen.getByLabelText(/confirmer le mot de passe/i),
-      "dixcaracts!"
+      "dixcaracts"
     );
     await user.click(screen.getByRole("button", { name: /s'inscrire/i }));
 
     await waitFor(() => {
       expect(mockRegisterUser).toHaveBeenCalledOnce();
-      expect(mockRegisterUser).toHaveBeenCalledWith("alice@example.com", "dixcaracts!");
+      expect(mockRegisterUser).toHaveBeenCalledWith("alice@example.com", "dixcaracts");
     });
   });
 

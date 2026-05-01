@@ -22,12 +22,18 @@ _DUMMY_JWT = "dummy-secret-for-unit-tests-do-not-use"
 
 
 class TestDefaults:
-    def test_default_environment_is_prod(self):
-        """ENVIRONMENT doit valoir 'prod' quand aucune variable n'est définie.
+    def test_default_environment_is_prod(self, monkeypatch):
+        """ENVIRONMENT doit valoir 'prod' quand aucune variable d'env n'est définie.
 
         Garantit le comportement secure-by-default : un déploiement sans ENVIRONMENT
         explicite reste dans le mode le plus restrictif.
+
+        monkeypatch retire ENVIRONMENT de os.environ pour isoler ce test du
+        os.environ.setdefault("ENVIRONMENT", "dev") posé par conftest.py avant
+        l'import de app.core.config — sans quoi Pydantic lirait la var d'env
+        système et retournerait "dev" au lieu du défaut Pydantic "prod".
         """
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
         s = Settings(_env_file=None, JWT_SECRET_KEY=_DUMMY_JWT, DEBUG=False)
         assert s.ENVIRONMENT == "prod"
 
@@ -93,8 +99,9 @@ class TestProdSafetyValidator:
         assert s.ENVIRONMENT == "staging"
         assert s.DEBUG is True
 
-    def test_default_prod_with_debug_false_does_not_raise(self):
+    def test_default_prod_with_debug_false_does_not_raise(self, monkeypatch):
         """Le cas le plus courant en déploiement : ENVIRONMENT absent (prod) + DEBUG=false."""
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
         # Ne doit pas lever d'exception.
         s = Settings(_env_file=None, JWT_SECRET_KEY=_DUMMY_JWT, DEBUG=False)
         assert s.ENVIRONMENT == "prod"

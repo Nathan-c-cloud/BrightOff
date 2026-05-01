@@ -157,7 +157,7 @@ class TestRegister:
         """
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": "tenchars@example.com", "password": "dixcaracts!"},
+            json={"email": "tenchars@example.com", "password": "dixchar10!"},
         )
 
         assert response.status_code == 201
