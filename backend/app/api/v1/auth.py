@@ -1,10 +1,25 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+import google.auth.exceptions
+import google.auth.transport.requests
+import google.oauth2.id_token
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.modules.auth import jwt, password, service
+from app.modules.auth.jwt import JWTError
+from app.modules.auth.models import User
+from app.modules.auth.service import EmailAlreadyRegisteredError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_bearer_scheme = HTTPBearer()
 
 
 # ---------- Schemas ----------
@@ -26,6 +41,7 @@ class GoogleAuthRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     expires_in: int
 
@@ -54,10 +70,27 @@ class UserMeResponse(BaseModel):
         422: {"description": "Données invalides (email mal formé, mot de passe trop court)"},
     },
 )
-async def register(payload: UserRegisterRequest) -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def register(
+    payload: UserRegisterRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> TokenResponse:
+    existing_user = await service.get_user_by_email(db, payload.email)
+    if existing_user is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    hashed_password = password.hash_password(payload.password)
+    user = await service.create_user_email(db, payload.email, hashed_password)
+
+    access_token = jwt.create_access_token({"sub": user.email})
+    refresh_token = jwt.create_refresh_token({"sub": user.email})
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
@@ -73,10 +106,39 @@ async def register(payload: UserRegisterRequest) -> TokenResponse:
         401: {"description": "Email ou mot de passe invalide"},
     },
 )
-async def login(payload: UserLoginRequest) -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def login(
+    payload: UserLoginRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> TokenResponse:
+    user = await service.get_user_by_email(db, payload.email)
+
+    # Message générique intentionnel : ne pas distinguer "email inconnu" de
+    # "mot de passe incorrect" pour éviter l'énumération de comptes (OWASP).
+    # Le cas hashed_password is None couvre les comptes Google-only sans password.
+    _invalid = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid email or password",
+    )
+
+    if user is None or user.hashed_password is None:
+        raise _invalid
+
+    if not password.verify_password(payload.password, user.hashed_password):
+        raise _invalid
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account disabled",
+        )
+
+    access_token = jwt.create_access_token({"sub": user.email})
+    refresh_token = jwt.create_refresh_token({"sub": user.email})
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
@@ -90,13 +152,55 @@ async def login(payload: UserLoginRequest) -> TokenResponse:
         "un compte est créé automatiquement."
     ),
     responses={
-        401: {"description": "Token Google invalide"},
+        401: {"description": "Token Google invalide ou email non vérifié"},
+        409: {"description": "Un compte avec cet email existe déjà (autre provider)"},
     },
 )
-async def google_auth(payload: GoogleAuthRequest) -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def google_auth(
+    payload: GoogleAuthRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> TokenResponse:
+    # Vérification du token Google via la bibliothèque officielle google-auth.
+    # ValueError est levée si le token est invalide, expiré ou si l'audience ne
+    # correspond pas au Client ID. GoogleAuthError couvre les erreurs d'issuer.
+    try:
+        google_request = google.auth.transport.requests.Request()
+        id_info = google.oauth2.id_token.verify_oauth2_token(
+            payload.google_token,
+            google_request,
+            settings.GOOGLE_CLIENT_ID,
+        )
+    except (ValueError, google.auth.exceptions.GoogleAuthError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Google invalide",
+        ) from None
+
+    # Refuser les tokens dont l'email n'a pas été vérifié par Google.
+    if not id_info.get("email_verified"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google email not verified",
+        )
+
+    email: str = id_info["email"]
+    oauth_id: str = id_info["sub"]
+
+    try:
+        user = await service.create_or_get_user_google(db, email, oauth_id)
+    except EmailAlreadyRegisteredError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists. Please sign in with your password.",
+        ) from None
+
+    access_token = jwt.create_access_token({"sub": user.email})
+    refresh_token = jwt.create_refresh_token({"sub": user.email})
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
@@ -105,15 +209,61 @@ async def google_auth(payload: GoogleAuthRequest) -> TokenResponse:
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Renouveler le JWT",
-    description=("Renouvelle le JWT de l'utilisateur connecté. Nécessite un JWT valide."),
+    description=(
+        "Renouvelle la paire de tokens à partir d'un refresh token valide. "
+        "Fournir le refresh token (et non l'access token) dans le header Authorization: Bearer."
+    ),
     responses={
-        401: {"description": "JWT manquant, expiré ou invalide"},
+        401: {"description": "Refresh token manquant, expiré ou invalide"},
+        403: {"description": "Header Authorization absent (Bearer requis)"},
     },
 )
-async def refresh_token() -> TokenResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def refresh_token(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> TokenResponse:
+    _invalid = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired refresh token",
+    )
+
+    try:
+        payload = jwt.decode_token(credentials.credentials)
+    except JWTError:
+        raise _invalid from None
+
+    # Empêche l'utilisation d'un access token comme refresh token.
+    if payload.get("type") != "refresh":
+        raise _invalid
+
+    sub: str | None = payload.get("sub")
+    if sub is None:
+        raise _invalid
+
+    # Vérifier que l'utilisateur existe encore et est actif : un compte désactivé
+    # ne doit pas pouvoir renouveler ses tokens pendant toute la durée du refresh token.
+    user = await service.get_user_by_email(db, sub)
+    if user is None:
+        raise _invalid
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account disabled",
+        )
+
+    access_token = jwt.create_access_token({"sub": sub})
+    # Note : ceci n'est PAS une rotation effective. Sans stockage côté serveur
+    # (jti persisté + invalidation atomique), l'ancien refresh token reste
+    # valide jusqu'à expiration. Émettre un nouveau token côté client est
+    # simplement une bonne pratique côté UX. La rotation effective est listée
+    # en dette technique (voir docs/dette-technique-sprint-2.md, H-005).
+    new_refresh_token = jwt.create_refresh_token({"sub": sub})
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=new_refresh_token,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
@@ -127,8 +277,12 @@ async def refresh_token() -> TokenResponse:
         401: {"description": "JWT manquant, expiré ou invalide"},
     },
 )
-async def get_me() -> UserMeResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def get_me(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> UserMeResponse:
+    return UserMeResponse(
+        id=current_user.id,
+        email=current_user.email,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
     )

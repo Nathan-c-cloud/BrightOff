@@ -100,6 +100,20 @@ variable "brightdata_token" {
   sensitive   = true
 }
 
+variable "google_client_secret" {
+  description = "Google OAuth 2.0 Client Secret — fourni par Google Cloud Console, utilisé par Auth.js côté frontend et FastAPI côté backend pour valider les tokens OAuth"
+  type        = string
+  sensitive   = true
+}
+
+variable "google_client_id" {
+  description = "Google OAuth 2.0 Client ID — fourni par Google Cloud Console, valeur publique (intégrée dans les URLs OAuth côté frontend). Non sensible, passé en clair comme variable d'env ECS"
+  type        = string
+  # Pas de sensitive = true : le Client ID est public par nature.
+  # Il est visible dans les URLs de redirection OAuth côté navigateur.
+  # Il n'y a aucun intérêt à le chiffrer.
+}
+
 # ── Config opérationnelle — valeurs par défaut orientées développement ──
 
 variable "cors_origins" {

@@ -18,6 +18,15 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency FastAPI pour injecter une session DB dans les routes."""
+    """Dependency FastAPI pour injecter une session DB dans les routes.
+
+    Commit automatique si la route se termine sans exception.
+    Rollback automatique sur toute exception (y compris HTTPException) avant re-raise.
+    """
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

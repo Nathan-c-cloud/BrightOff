@@ -278,6 +278,13 @@ resource "aws_ecs_task_definition" "api" {
           # Origines autorisées par le middleware FastAPI CORS.
           # En dev : "http://localhost:3000" (Next.js local).
           # En prod : "https://brightoff.fr" (Vercel).
+        },
+        {
+          name  = "GOOGLE_CLIENT_ID"
+          value = var.google_client_id
+          # Client ID Google OAuth — valeur publique, visible dans les URLs OAuth côté navigateur.
+          # Utilisé par Auth.js (frontend) et FastAPI (backend) pour identifier l'application
+          # auprès de Google. Pas de chiffrement nécessaire.
         }
       ]
 
@@ -310,6 +317,12 @@ resource "aws_ecs_task_definition" "api" {
           name      = "OPENAI_API_KEY"
           valueFrom = aws_secretsmanager_secret.openai_api_key.arn
           # Clé OpenAI commençant par "sk-" — utilisée pour générer les embeddings pgvector.
+        },
+        {
+          name      = "GOOGLE_CLIENT_SECRET"
+          valueFrom = aws_secretsmanager_secret.google_client_secret.arn
+          # Client Secret Google OAuth — injecté au boot par ECS via Secrets Manager.
+          # Utilisé par FastAPI pour valider les tokens OAuth et échanger les auth codes.
         }
       ]
 

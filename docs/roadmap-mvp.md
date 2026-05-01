@@ -146,7 +146,7 @@ L'utilisateur clique sur une offre, voit le gap analysis détaillé et peut cand
 - Landing page publique (présentation de la proposition de valeur BrightOff)
 - Application du design system (palette de couleurs, logo)
 - UI polish sur tous les écrans
-- Tests end-to-end
+- Tests end-to-end avec Playwright (flows critiques : auth, upload CV, matching)
 - Déploiement production (AWS ECS Fargate pour le backend, Vercel pour le frontend)
 - Préparation beta testing
 

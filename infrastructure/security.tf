@@ -70,11 +70,11 @@ resource "aws_security_group" "ecs" {
   # bonne pratique AWS : la règle reste valide même si l'IP de l'ALB change,
   # et elle n'autorise aucune autre source, même dans le même VPC.
   ingress {
-    description              = "FastAPI (8000) from ALB only"
-    from_port                = 8000
-    to_port                  = 8000
-    protocol                 = "tcp"
-    security_groups          = [aws_security_group.alb.id]
+    description     = "FastAPI (8000) from ALB only"
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
   }
 
   # Outbound : les ECS Tasks doivent pouvoir :
@@ -107,11 +107,11 @@ resource "aws_security_group" "rds" {
   # Aucune autre ressource dans le VPC (ni l'ALB, ni un bastion hypothétique) ne peut
   # se connecter à la base de données sans modifier explicitement cette règle.
   ingress {
-    description              = "PostgreSQL (5432) from ECS Tasks only"
-    from_port                = 5432
-    to_port                  = 5432
-    protocol                 = "tcp"
-    security_groups          = [aws_security_group.ecs.id]
+    description     = "PostgreSQL (5432) from ECS Tasks only"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs.id]
   }
 
   # Outbound : RDS n'a aucun besoin de sortir — c'est une base de données, pas un client.

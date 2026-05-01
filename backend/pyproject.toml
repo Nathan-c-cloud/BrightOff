@@ -36,3 +36,8 @@ indent-style = "space"
 # quand aucun test n'est collecté. À retirer quand les premiers tests seront écrits.
 testpaths = ["tests"]
 addopts = "--no-header -rN"
+asyncio_mode = "auto"
+# "function" garantit que chaque fixture async s'exécute sur la loop du test qui la
+# demande — condition nécessaire pour éviter le conflit asyncpg "Future attached to
+# a different loop". db_engine déroge via loop_scope="session" explicite sur sa fixture.
+asyncio_default_fixture_loop_scope = "function"

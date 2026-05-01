@@ -27,6 +27,13 @@ openai_api_key = "sk-YOUR-KEY-HERE"
 # Token Bright Data — obtenir sur https://brightdata.com/cp/setting/users
 brightdata_token = "YOUR-BRIGHTDATA-TOKEN-HERE"
 
+# Google OAuth 2.0 — obtenir sur https://console.cloud.google.com/
+# → APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client IDs
+# → Application type : Web application
+# → Authorized redirect URIs : http://localhost:3000/api/auth/callback/google (dev)
+google_client_id     = "000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+google_client_secret = "GOCSPX-YOUR-CLIENT-SECRET-HERE"
+
 # Config opérationnelle — valeurs par défaut convenables pour le dev local
 # cors_origins = "http://localhost:3000"   # décommenter pour surcharger
 # log_level    = "INFO"                    # décommenter pour passer en DEBUG

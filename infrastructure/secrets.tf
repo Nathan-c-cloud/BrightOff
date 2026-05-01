@@ -146,6 +146,36 @@ resource "aws_secretsmanager_secret_version" "brightdata_token" {
   secret_string = var.brightdata_token
 }
 
+# ──────────────────────────────────────────────────
+# GOOGLE OAUTH CLIENT SECRET
+# ──────────────────────────────────────────────────
+# Le Google Client Secret est la clé privée de l'application OAuth 2.0.
+# Il permet au backend FastAPI de vérifier la légitimité des tokens Google
+# et d'échanger le code d'autorisation OAuth contre un access token.
+# Si ce secret fuite, un attaquant peut se faire passer pour notre application
+# auprès de Google et voler des sessions utilisateurs → traitement identique aux clés API.
+#
+# Note : le Google CLIENT ID (lui, public) n'est PAS stocké ici — il est passé
+# directement en variable d'environnement claire dans la Task Definition ECS
+# (voir ecs.tf, bloc environment), car il apparaît dans les URLs OAuth côté navigateur.
+
+resource "aws_secretsmanager_secret" "google_client_secret" {
+  name        = "${local.name_prefix}/google-client-secret"
+  description = "Google OAuth 2.0 Client Secret - used by FastAPI to validate OAuth tokens and exchange auth codes"
+
+  recovery_window_in_days = 0
+
+  tags = {
+    Name    = "${local.name_prefix}-google-client-secret"
+    Purpose = "Google OAuth 2.0 authentication"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "google_client_secret" {
+  secret_id     = aws_secretsmanager_secret.google_client_secret.id
+  secret_string = var.google_client_secret
+}
+
 # ══════════════════════════════════════════════════
 # SSM PARAMETER STORE — Configuration non sensible
 # ══════════════════════════════════════════════════
