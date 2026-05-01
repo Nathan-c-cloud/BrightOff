@@ -17,8 +17,9 @@ describe("Input", () => {
 
   it("does_not_apply_border_error_by_default", () => {
     render(<Input />);
-    const el = document.querySelector("input");
-    expect(el?.className).not.toContain("border-error");
+    const input = document.querySelector("input")!;
+    expect(input).not.toHaveClass("input-error");
+    expect(input).not.toHaveAttribute("aria-invalid", "true");
   });
 
   it("applies_input_error_class_when_error_is_true", () => {

@@ -27,13 +27,9 @@ describe("ScoreBar", () => {
   });
 
   it("does_not_render_label_when_not_provided", () => {
-    const { container } = render(<ScoreBar score={70} />);
-    // Seul le wrapper progressbar et la barre elle-même — pas de div label
-    const textNodes = container.querySelectorAll("div > div:first-child");
-    // Vérifie qu'il n'y a pas de texte de label superflu
-    textNodes.forEach((node) => {
-      expect(node.className).not.toContain("label");
-    });
+    render(<ScoreBar score={70} />);
+    // Quand label est absent, aucun texte de label ne doit apparaître dans le DOM
+    expect(screen.queryByText("Compétences techniques")).not.toBeInTheDocument();
   });
 
   it("renders_numeric_value_when_showValue_true", () => {

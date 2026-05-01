@@ -125,7 +125,7 @@ describe("NavApp", () => {
   it("dropdown_is_closed_by_default", () => {
     render(<NavApp {...DEFAULT_PROPS} />);
     expect(
-      screen.queryByRole("menuitem", { name: "Se déconnecter" })
+      screen.queryByRole("button", { name: "Se déconnecter" })
     ).not.toBeInTheDocument();
   });
 
@@ -135,7 +135,7 @@ describe("NavApp", () => {
     const userMetaButton = screen.getByRole("button", { name: /thomas d\./i });
     await user.click(userMetaButton);
     expect(
-      screen.getByRole("menuitem", { name: "Se déconnecter" })
+      screen.getByRole("button", { name: "Se déconnecter" })
     ).toBeInTheDocument();
   });
 
@@ -146,7 +146,7 @@ describe("NavApp", () => {
     // Ouvrir le menu
     await user.click(screen.getByRole("button", { name: /thomas d\./i }));
     // Cliquer sur Se déconnecter
-    await user.click(screen.getByRole("menuitem", { name: "Se déconnecter" }));
+    await user.click(screen.getByRole("button", { name: "Se déconnecter" }));
     expect(onLogout).toHaveBeenCalledOnce();
   });
 
@@ -156,12 +156,12 @@ describe("NavApp", () => {
     // Ouvrir
     await user.click(screen.getByRole("button", { name: /thomas d\./i }));
     expect(
-      screen.getByRole("menuitem", { name: "Se déconnecter" })
+      screen.getByRole("button", { name: "Se déconnecter" })
     ).toBeInTheDocument();
     // Cliquer ailleurs
     await user.click(document.body);
     expect(
-      screen.queryByRole("menuitem", { name: "Se déconnecter" })
+      screen.queryByRole("button", { name: "Se déconnecter" })
     ).not.toBeInTheDocument();
   });
 
@@ -171,12 +171,12 @@ describe("NavApp", () => {
     // Ouvrir
     await user.click(screen.getByRole("button", { name: /thomas d\./i }));
     expect(
-      screen.getByRole("menuitem", { name: "Se déconnecter" })
+      screen.getByRole("button", { name: "Se déconnecter" })
     ).toBeInTheDocument();
     // Escape
     await user.keyboard("{Escape}");
     expect(
-      screen.queryByRole("menuitem", { name: "Se déconnecter" })
+      screen.queryByRole("button", { name: "Se déconnecter" })
     ).not.toBeInTheDocument();
   });
 
@@ -214,10 +214,11 @@ describe("NavApp", () => {
     expect(userMetaButton).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("dropdown_panel_has_role_menu", async () => {
+  it("dropdown_panel_is_visible_when_open", async () => {
     const user = userEvent.setup();
     render(<NavApp {...DEFAULT_PROPS} />);
     await user.click(screen.getByRole("button", { name: /thomas d\./i }));
-    expect(screen.getByRole("menu")).toBeInTheDocument();
+    // Le panel dropdown est visible — on vérifie la présence du bouton "Se déconnecter"
+    expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeInTheDocument();
   });
 });

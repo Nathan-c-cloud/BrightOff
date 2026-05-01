@@ -177,6 +177,12 @@ body {
     font-size: 16px;
   }
 
+  /* Neutralise le text-decoration: underline de @layer base { a:hover }
+     quand un <Link> porte une classe .btn (bouton-lien landing, nav publique). */
+  .btn:hover {
+    text-decoration: none;
+  }
+
   /* --- Carte --- */
   .card {
     background: var(--color-bg-card);

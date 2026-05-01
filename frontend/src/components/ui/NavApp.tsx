@@ -168,10 +168,9 @@ export function NavApp({
           <span className="user-name">{userName}</span>
 
           {menuOpen && (
-            <div className="user-menu" role="menu">
+            <div className="user-menu">
               <button
                 className="user-menu-item"
-                role="menuitem"
                 type="button"
                 onClick={(e) => {
                   // Stopper la propagation pour éviter le re-toggle du parent

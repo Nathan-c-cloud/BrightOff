@@ -84,9 +84,7 @@ Ils remplacent les valeurs hardcodées présentes dans la maquette de référenc
 | `--color-warning-text`      | `#6b3a26` | `--color-warning` (`#FFB088`) | (à valider S3-04) | Texte dans `.badge-peach-dark` (nice-to-have manquant) |
 | `--color-accent-soft-text`  | `#5a2a1d` | `--color-accent-soft` (`#FFC2AC`) | (à valider S3-04) | Texte dans encarts `.reco` (plan d'action Gap Analysis) |
 
-> **Statut :** ces tokens sont documentés ici mais **pas encore déclarés dans `globals.css`** — ils doivent y être
-> ajoutés lors de la story S3-02/S3-03 (composants React) pour remplacer les valeurs hardcodées identifiées dans la
-> maquette. Les ratios de contraste sont à mesurer formellement en S3-04 (audit accessibilité).
+> **Statut :** ces tokens sont déclarés dans `globals.css` (depuis S3-01). Les ratios de contraste sont à mesurer formellement en S3-04 (audit accessibilité).
 
 ---
 
@@ -183,6 +181,4 @@ Ils remplacent les valeurs hardcodées présentes dans la maquette de référenc
 - **`--gradient-brand` change d'angle** — `90deg` → `95deg`. L'impact visuel est mineur mais les styles hardcodés
   avec `linear-gradient(90deg, #7AC7E6, #FF705A)` (notamment dans `design-guide.md` et la maquette `.bar > i`) doivent
   être mis à jour pour utiliser `var(--gradient-brand)`.
-- **Tokens de texte sur fonds colorés** (`--color-primary-text`, etc.) sont documentés ici mais pas encore dans
-  `globals.css`. Les valeurs hardcodées dans `globals.css` (ex : `color: #2680a0` dans `.badge-skill`) doivent être
-  remplacées lors de S3-02/S3-03.
+- **Tokens de texte sur fonds colorés** (`--color-primary-text`, etc.) sont déclarés dans `globals.css` depuis S3-01. Toute valeur hardcodée résiduelle doit être remplacée par les tokens correspondants.

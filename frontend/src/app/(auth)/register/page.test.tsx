@@ -110,7 +110,7 @@ describe("RegisterPage", () => {
   // Validation client — mot de passe trop court
   // -------------------------------------------------------------------------
 
-  it("displays_error_when_password_is_shorter_than_8_chars_and_does_not_call_registerUser", async () => {
+  it("displays_error_when_password_is_shorter_than_10_chars_and_does_not_call_registerUser", async () => {
     render(<RegisterPage />);
     const user = userEvent.setup();
 
@@ -123,7 +123,7 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: /s'inscrire/i }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Le mot de passe doit contenir au moins 8 caractères."
+      "Le mot de passe doit contenir au moins 10 caractères."
     );
     // registerUser ne doit pas être appelé si la validation client bloque
     expect(mockRegisterUser).not.toHaveBeenCalled();

@@ -28,7 +28,7 @@ export function ScoreBar({ score, label, showValue = false }: ScoreBarProps) {
       aria-valuenow={clamped}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-label={label}
+      aria-label={label ?? "Score"}
     >
       {label && (
         <div
