@@ -38,6 +38,7 @@ J7   Phase B — Backend : tests unitaires + intégration CV parsing
 J8   Phase B — Frontend : page /onboarding (drag-drop, upload, état loading)
 J9   Phase B — Frontend : polling + notification pop-up "Profil prêt"
 J10  Phase B — Frontend : page /profile éditable + tests frontend
+             — S3-RESPONSIVE : responsive XS→2XL sur toutes les pages (Phase A + Phase B)
              — Revue de code + PR finale
 ```
 
@@ -669,6 +670,45 @@ navigable depuis le dashboard. Les compétences peuvent être ajoutées et suppr
 
 ---
 
+### S3-RESPONSIVE — Responsive complet XS → 2XL (toutes pages Sprint 3)
+
+**Phase :** C — Polish responsive
+**Estimation :** 5 points
+
+En tant qu'utilisateur sur mobile, tablette ou desktop,
+je veux que toutes les pages de l'application s'adaptent correctement à la largeur de mon écran (320 px à 1920 px et au-delà),
+afin de naviguer sans scroll horizontal, sans texte tronqué et avec une navigation accessible (hamburger sur mobile).
+
+**Critères d'acceptation :**
+
+- [ ] Un breakpoint custom `xs: 480px` est déclaré dans `frontend/src/app/globals.css` via `@theme inline` (Tailwind v4) pour distinguer XS (320–479 px) de SM (480–639 px).
+- [ ] `NavPublic` : affiche un hamburger Lucide `Menu` sur XS/SM/MD (< 1024 px). Le menu déroulant couvre toute la largeur. La nav horizontale classique est affichée à partir de LG (≥ 1024 px).
+- [ ] `NavApp` : affiche un hamburger sur XS/SM/MD (< 1024 px) avec un drawer fullscreen. Le drawer se ferme au tap en dehors et à la touche Escape. Nav horizontale complète en LG+.
+- [ ] `Card`, `Field`, `Input`, `Button` : paddings et font-sizes vérifiés en XS — aucun débordement de texte même avec un nom long (ex. "Nathan AIHOU-Cloud-Maintenance").
+- [ ] `Footer` landing : centré, padding réduit en XS/SM.
+- [ ] Page `/` (landing) : hero 1 colonne + CTA pleine largeur en XS/SM, cartes "Comment ça marche" empilées en 1 colonne en XS/SM/MD, layout 2 colonnes hero + 3 colonnes cartes en LG+.
+- [ ] Pages `/login` et `/register` : carte `max-width: calc(100vw - 32px)` en XS, `max-w-md` (460 px) en MD+.
+- [ ] Page `/dashboard` : padding 16–20 px, H1 22–24 px en XS/SM ; padding 24 px et layout actuel en MD+.
+- [ ] Page `/onboarding` : `Dropzone` pleine largeur en XS/SM, centrée et max-w-lg en MD+.
+- [ ] Page `/profile` : sections empilées 1 colonne en XS/SM/MD ; sidebar 320 px sticky + contenu principal en LG+.
+- [ ] Aucun scroll horizontal n'apparaît sur aucune des pages listées aux largeurs 320, 375, 414, 640, 768, 1024, 1280, 1536 et 1920 px (vérifiable via Chrome DevTools Device Emulation).
+- [ ] `max-width: 1200px` appliqué sur le `page-wrap` global empêche l'étirement infini du contenu en 2XL+ (≥ 1536 px).
+
+**Tâches techniques :**
+
+- Front : ajouter le breakpoint `xs` dans `frontend/src/app/globals.css` (`@theme inline`)
+- Front : implémenter le hamburger + drawer dans `NavPublic` et `NavApp` (état `isOpen`, gestion `keydown Escape`, `click-outside`)
+- Front : appliquer les classes responsive Tailwind sur les composants `Card`, `Field`, `Input`, `Button`
+- Front : corriger les layouts responsive des pages `/`, `/login`, `/register`, `/dashboard`, `/onboarding`, `/profile`
+- Front : ajouter `max-width: 1200px` sur le wrapper global si absent
+- Tests : vérification manuelle aux viewports 320 / 375 / 414 / 640 / 768 / 1024 / 1280 / 1536 / 1920 px via Chrome DevTools
+
+**Dépendances :** S3-01 (tokens), S3-02 (composants de base), S3-03 (NavApp, Dropzone), S3-04 (pages auth + dashboard), S3-13 (page /onboarding), S3-15 (page /profile)
+
+**Définition de "Done" :** Aucun scroll horizontal visible aux 9 viewports de test. Le hamburger est fonctionnel sur NavPublic et NavApp (ouverture, fermeture tap-outside + Escape). `npm run lint` et `npm run build` passent.
+
+---
+
 ## Récapitulatif des stories
 
 | ID    | Titre                                               | Phase    | Points | Dépendances         |
@@ -688,6 +728,9 @@ navigable depuis le dashboard. Les compétences peuvent être ajoutées et suppr
 | S3-13 | Page /onboarding (upload + feedback visuel)         | B        | 3      | S3-03, S3-10        |
 | S3-14 | Polling dashboard + notification "Profil prêt"      | B        | 3      | S3-04, S3-12, S3-13 |
 | S3-15 | Page /profile éditable + endpoints profil           | B        | 5      | S3-09, S3-11, S3-03 |
+| S3-RESPONSIVE | Responsive complet XS→2XL (toutes pages)  | C        | 5      | S3-01, S3-02, S3-03, S3-04, S3-13, S3-15 |
+
+**Total : 51 points** (Phase A 11 pts + Dette S2 7 pts + Phase B 28 pts + Phase C Responsive 5 pts)
 
 ---
 
@@ -724,6 +767,15 @@ dev ne sont pas configurés localement avant J5, le développement de S3-10 est 
 credentials AWS dès J1 (pré-requis), et prévoir un fallback de test avec `moto` (mock AWS) pour que les tests
 d'intégration ne dépendent jamais d'un vrai appel S3.
 
+### R-05 — Responsive non traité en Phase A — dette technique potentielle (impact : moyen)
+
+La Phase A a livré les composants et les pages sans implémenter le responsive. Si la story `S3-RESPONSIVE` est droppée
+en fin de sprint faute de temps, toutes les pages livrées (design system, auth, dashboard, onboarding, profil) seront
+inutilisables sur mobile et tablette, ce qui bloque la recette utilisateur et la démo. Mitigation : positionner
+`S3-RESPONSIVE` comme story de clôture obligatoire de J10 avant la revue de code — elle ne peut pas glisser sur un
+sprint suivant sans compromettre la qualité de livraison. Si le temps manque, réduire le périmètre au strict minimum
+(hamburger NavApp + no horizontal scroll sur /onboarding et /profile) plutôt que de la dropper totalement.
+
 ---
 
 ## Définition de Fini Sprint 3
@@ -753,9 +805,11 @@ Le sprint est terminé quand tous les critères suivants sont verts :
 - [ ] Le polling frontend detecte `ready` et affiche la notification "Ton profil est prêt !"
 - [ ] La page `/profile` affiche les compétences extraites et permet d'en ajouter/supprimer
 
-**Mobile :**
+**Responsive :**
 
-- [ ] `/onboarding`, `/profile`, dashboard "profil en construction" testés manuellement à 375px et 768px
+- [ ] Responsive validé sur tous les viewports de référence : 320 / 375 / 768 / 1024 / 1280 / 1920 px
+- [ ] Aucun scroll horizontal sur aucune page aux viewports ci-dessus
+- [ ] Hamburger fonctionnel sur `NavPublic` et `NavApp` (fermeture tap-outside + Escape)
 
 **Dette S2 :**
 
