@@ -199,6 +199,15 @@ button {
     color: var(--color-text-placeholder);
   }
 
+  /* Variante erreur — bordure corail foncé + focus shadow rouge */
+  .input-error {
+    border-color: var(--color-error);
+  }
+  .input-error:focus {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(232, 80, 58, 0.18);
+  }
+
   label.field {
     display: block;
     margin-bottom: 14px;
@@ -209,6 +218,45 @@ button {
     font-weight: 600;
     color: var(--color-text);
     margin-bottom: 6px;
+  }
+
+  /* --- Avatar --- */
+  /* Gradient pêche→corail conforme maquette assets/maquettes/brightoff-claude-design/styles.css */
+  /* Les hex de la maquette sont remplacés par les tokens CSS (--color-accent-soft, --color-accent) */
+  .avatar-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-soft), var(--color-accent));
+    color: white;
+    font-weight: 700;
+    font-size: 11px;
+    @apply flex items-center justify-center;
+    flex-shrink: 0;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-soft), var(--color-accent));
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    @apply flex items-center justify-center;
+    flex-shrink: 0;
+  }
+
+  .avatar-lg {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-soft), var(--color-accent));
+    color: white;
+    font-weight: 700;
+    font-size: 32px;
+    @apply flex items-center justify-center;
+    flex-shrink: 0;
   }
 
   /* --- Badges --- */
