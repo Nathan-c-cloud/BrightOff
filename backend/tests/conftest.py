@@ -1,5 +1,17 @@
 """Fixtures partagées pour les tests d'intégration BrightOff.
 
+IMPORTANT — ordre d'exécution :
+1. Force ENVIRONMENT=dev et JWT_SECRET_KEY via os.environ AVANT toute
+   importation de app.core.config (sinon Settings() est instancié avec
+   les valeurs réelles du .env local et peut crasher au validateur
+   _enforce_prod_safety, ou configurer les middlewares avec la mauvaise
+   valeur). Les os.environ.setdefault ci-dessous sont la seule défense
+   efficace — muter settings après import ne reconfigure pas les
+   middlewares déjà instanciés.
+2. Imports standard (pytest, sqlalchemy...).
+3. Imports app.* (qui voient maintenant les bonnes vars d'env).
+4. Fixtures.
+
 Stratégie DB :
     PostgreSQL via docker-compose (brightoff_test), conforme à la prod.
     SQLite écarté car les modèles utilisent sqlalchemy.dialects.postgresql.UUID
@@ -26,21 +38,36 @@ Prérequis :
     - Override possible : exporter `TEST_DATABASE_URL` (CI) ou `TEST_POSTGRES_DB`
       (nom de la base, défaut `brightoff_test`).
 """
-
 import os
-from collections.abc import AsyncGenerator
-from urllib.parse import urlparse, urlunparse
 
-import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.pool import NullPool
+# ---------------------------------------------------------------------------
+# Forcer les vars d'env AVANT tout import de app.* (voir docstring ci-dessus)
+#
+# setdefault (pas =) : ne pas écraser si l'utilisateur a déjà défini ces vars
+# dans son environnement shell pour ses tests locaux.
+# ---------------------------------------------------------------------------
+TEST_JWT_SECRET = "test-secret-only-for-pytest-do-not-use-in-prod-32chars-min"
+os.environ.setdefault("JWT_SECRET_KEY", TEST_JWT_SECRET)
+os.environ.setdefault("ENVIRONMENT", "dev")
 
-from app.core.base import Base
-from app.core.config import settings
-from app.core.database import get_db
-from app.main import app
+# ---------------------------------------------------------------------------
+# Imports standard
+# ---------------------------------------------------------------------------
+from collections.abc import AsyncGenerator  # noqa: E402
+from urllib.parse import urlparse, urlunparse  # noqa: E402
+
+import pytest_asyncio  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
+from sqlalchemy.pool import NullPool  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Imports app.* — voient maintenant les bonnes vars d'env
+# ---------------------------------------------------------------------------
+from app.core.base import Base  # noqa: E402
+from app.core.config import settings  # noqa: E402
+from app.core.database import get_db  # noqa: E402
+from app.main import app  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -63,27 +90,6 @@ def _build_test_database_url() -> str:
 
 
 TEST_DATABASE_URL = _build_test_database_url()
-
-TEST_JWT_SECRET = "integration-test-secret-key-do-not-use-in-prod"
-
-
-# ---------------------------------------------------------------------------
-# Fixture : JWT secret (scope=session)
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="session", autouse=True)
-def patch_jwt_secret_for_integration():
-    """Force une clé JWT déterministe pour toute la session de tests d'intégration.
-
-    JWT_SECRET_KEY est un champ Pydantic Settings requis sans valeur par défaut.
-    Cette fixture garantit que les tests s'exécutent sans variable d'env réelle,
-    et que les tokens générés pendant les tests sont décodables de façon cohérente.
-    """
-    original = settings.JWT_SECRET_KEY
-    settings.JWT_SECRET_KEY = TEST_JWT_SECRET
-    yield
-    settings.JWT_SECRET_KEY = original
 
 
 # ---------------------------------------------------------------------------

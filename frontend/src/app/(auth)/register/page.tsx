@@ -49,8 +49,8 @@ export default function RegisterPage() {
    * Retourne un message d'erreur ou null si tout est valide.
    */
   function validateForm(): string | null {
-    if (password.length < 8) {
-      return "Le mot de passe doit contenir au moins 8 caractères.";
+    if (password.length < 10) {
+      return "Le mot de passe doit contenir au moins 10 caractères.";
     }
 
     if (password !== confirmPassword) {
@@ -189,7 +189,7 @@ export default function RegisterPage() {
             type="password"
             autoComplete="new-password"
             required
-            minLength={8}
+            minLength={10}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading}
@@ -207,7 +207,7 @@ export default function RegisterPage() {
               e.currentTarget.style.boxShadow = "none";
               e.currentTarget.style.borderColor = "var(--brightoff-border)";
             }}
-            placeholder="8 caractères minimum"
+            placeholder="10 caractères minimum"
           />
         </div>
 

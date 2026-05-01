@@ -128,13 +128,76 @@ class TestRegister:
 
     @pytest.mark.asyncio
     async def test_register_password_too_short_returns_422(self, client, db_session):
-        """Un mot de passe de moins de 8 caractères doit retourner 422."""
+        """Un mot de passe de moins de 10 caractères doit retourner 422."""
         response = await client.post(
             "/api/v1/auth/register",
             json={"email": "short@example.com", "password": "short"},
         )
 
         assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_register_password_9_chars_returns_422(self, client, db_session):
+        """Un mot de passe de 9 caractères exactement doit retourner 422.
+
+        Vérifie le seuil exact : 9 < 10, donc rejeté par Pydantic Field(min_length=10).
+        """
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "ninechars@example.com", "password": "neufchars"},
+        )
+
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_register_password_10_chars_returns_201(self, client, db_session):
+        """Un mot de passe de 10 caractères exactement doit être accepté (retourne 201).
+
+        Vérifie le seuil exact : 10 >= 10, donc accepté par Pydantic Field(min_length=10).
+        """
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "tenchars@example.com", "password": "dixchar10!"},
+        )
+
+        assert response.status_code == 201
+
+    @pytest.mark.asyncio
+    @pytest.mark.skip(
+        reason=(
+            "La fixture `client` partage une unique AsyncSession entre toutes les "
+            "requêtes du test. Deux asyncio.gather sur le même client déclenchent "
+            "'Session is already flushing' côté SQLAlchemy — ce n'est pas un bug "
+            "du code de production mais une limite d'isolation du harness de test. "
+            "La race condition réelle est couverte indirectement par "
+            "test_register_duplicate_email_returns_409 (contrainte UNIQUE + "
+            "IntegrityError → 409). Un test de vraie concurrence nécessiterait un "
+            "client HTTP externe (ex. httpx.AsyncClient distinct par requête) avec "
+            "une connexion DB dédiée par appel — hors scope S3-05."
+        )
+    )
+    async def test_register_concurrent_same_email_one_succeeds_one_fails(
+        self, client, db_session
+    ):
+        """Deux inscriptions simultanées avec le même email : exactement un 201 et un 409.
+
+        Vérifie que la contrainte UNIQUE BDD + gestion IntegrityError dans
+        create_user_email empêche les doublons même sous race condition. L'un des
+        deux appels réussit (201), l'autre est rejeté atomiquement (409).
+        """
+        import asyncio
+
+        payload = {"email": "concurrent@example.com", "password": "validPass123"}
+
+        r1, r2 = await asyncio.gather(
+            client.post("/api/v1/auth/register", json=payload),
+            client.post("/api/v1/auth/register", json=payload),
+        )
+
+        statuses = sorted([r1.status_code, r2.status_code])
+        assert statuses == [201, 409], (
+            f"Expected exactly one 201 and one 409, got {statuses}"
+        )
 
 
 # ---------------------------------------------------------------------------
