@@ -2,10 +2,10 @@
  * Tests unitaires — RegisterPage
  *
  * Dépendances mockées :
+ *   - @/lib/api-auth  : registerUser (appelé par RegisterPage depuis la refacto)
  *   - next-auth/react : signIn (connexion automatique post-inscription)
  *   - next/navigation : useRouter (router.push après inscription réussie)
  *   - next/link      : rendu simplifié (balise <a>)
- *   - global.fetch   : RegisterPage appelle directement fetch (pas api-auth.ts)
  *
  * Pattern : Arrange → Act → Assert dans chaque test.
  * Un test = un comportement précis.
@@ -14,10 +14,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ApiAuthError } from "@/lib/api-auth";
 
 // ---------------------------------------------------------------------------
 // Mocks de modules
 // ---------------------------------------------------------------------------
+
+const mockRegisterUser = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api-auth", () => ({
+  registerUser: mockRegisterUser,
+  // Re-export de la classe pour que les imports dans le composant fonctionnent
+  ApiAuthError: class ApiAuthError extends Error {
+    status: number;
+    code?: string;
+    constructor(message: string, status: number, code?: string) {
+      super(message);
+      this.name = "ApiAuthError";
+      this.status = status;
+      this.code = code;
+    }
+  },
+}));
 
 const mockSignIn = vi.hoisted(() => vi.fn());
 vi.mock("next-auth/react", () => ({
@@ -47,30 +64,12 @@ vi.mock("next/link", () => ({
 import RegisterPage from "./page";
 
 // ---------------------------------------------------------------------------
-// Helpers — factory de Response fetch mockée
-// ---------------------------------------------------------------------------
-
-/**
- * Crée un objet Response minimal compatible avec le comportement de
- * RegisterPage (lit .status et éventuellement .json()).
- */
-function makeFetchResponse(status: number, body?: object): Response {
-  return {
-    status,
-    ok: status >= 200 && status < 300,
-    json: () => Promise.resolve(body ?? {}),
-  } as unknown as Response;
-}
-
-// ---------------------------------------------------------------------------
 // Suite de tests
 // ---------------------------------------------------------------------------
 
 describe("RegisterPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Réinitialise global.fetch entre chaque test
-    vi.stubGlobal("fetch", vi.fn());
   });
 
   // -------------------------------------------------------------------------
@@ -111,7 +110,7 @@ describe("RegisterPage", () => {
   // Validation client — mot de passe trop court
   // -------------------------------------------------------------------------
 
-  it("displays_error_when_password_is_shorter_than_8_chars_and_does_not_call_fetch", async () => {
+  it("displays_error_when_password_is_shorter_than_8_chars_and_does_not_call_registerUser", async () => {
     render(<RegisterPage />);
     const user = userEvent.setup();
 
@@ -126,15 +125,15 @@ describe("RegisterPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Le mot de passe doit contenir au moins 8 caractères."
     );
-    // fetch ne doit pas être appelé si la validation client bloque
-    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    // registerUser ne doit pas être appelé si la validation client bloque
+    expect(mockRegisterUser).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------
   // Validation client — mots de passe non identiques
   // -------------------------------------------------------------------------
 
-  it("displays_error_when_passwords_do_not_match_and_does_not_call_fetch", async () => {
+  it("displays_error_when_passwords_do_not_match_and_does_not_call_registerUser", async () => {
     render(<RegisterPage />);
     const user = userEvent.setup();
 
@@ -149,23 +148,20 @@ describe("RegisterPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Les mots de passe ne correspondent pas."
     );
-    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    expect(mockRegisterUser).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------
-  // Soumission valide — inscription réussie (201) + signIn auto
+  // Soumission valide — inscription réussie + signIn auto
   // -------------------------------------------------------------------------
 
-  it("calls_fetch_register_endpoint_with_correct_payload_on_valid_submit", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      makeFetchResponse(201, {
-        access_token: "tok",
-        refresh_token: "ref",
-        token_type: "bearer",
-        expires_in: 1800,
-      })
-    );
-    // signIn post-inscription réussit
+  it("calls_registerUser_with_correct_payload_on_valid_submit", async () => {
+    mockRegisterUser.mockResolvedValueOnce({
+      access_token: "tok",
+      refresh_token: "ref",
+      token_type: "bearer",
+      expires_in: 1800,
+    });
     mockSignIn.mockResolvedValueOnce({ error: null, url: "/dashboard" });
 
     render(<RegisterPage />);
@@ -180,23 +176,18 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: /s'inscrire/i }));
 
     await waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalledOnce();
-    });
-
-    const [url, options] = vi.mocked(fetch).mock.calls[0] as [
-      string,
-      RequestInit,
-    ];
-    expect(url).toContain("/api/v1/auth/register");
-    expect(options.method).toBe("POST");
-    expect(JSON.parse(options.body as string)).toEqual({
-      email: "alice@example.com",
-      password: "motdepasse1",
+      expect(mockRegisterUser).toHaveBeenCalledOnce();
+      expect(mockRegisterUser).toHaveBeenCalledWith("alice@example.com", "motdepasse1");
     });
   });
 
   it("calls_signIn_credentials_after_successful_registration", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(makeFetchResponse(201));
+    mockRegisterUser.mockResolvedValueOnce({
+      access_token: "tok",
+      refresh_token: "ref",
+      token_type: "bearer",
+      expires_in: 1800,
+    });
     mockSignIn.mockResolvedValueOnce({ error: null, url: "/dashboard" });
 
     render(<RegisterPage />);
@@ -221,7 +212,12 @@ describe("RegisterPage", () => {
   });
 
   it("redirects_to_dashboard_after_successful_registration_and_auto_signin", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(makeFetchResponse(201));
+    mockRegisterUser.mockResolvedValueOnce({
+      access_token: "tok",
+      refresh_token: "ref",
+      token_type: "bearer",
+      expires_in: 1800,
+    });
     mockSignIn.mockResolvedValueOnce({ error: null, url: "/dashboard" });
 
     render(<RegisterPage />);
@@ -245,7 +241,7 @@ describe("RegisterPage", () => {
   // -------------------------------------------------------------------------
 
   it("displays_email_already_used_error_when_register_returns_409", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(makeFetchResponse(409));
+    mockRegisterUser.mockRejectedValueOnce(new ApiAuthError("Email déjà utilisé", 409));
 
     render(<RegisterPage />);
     const user = userEvent.setup();
@@ -272,8 +268,9 @@ describe("RegisterPage", () => {
   // -------------------------------------------------------------------------
 
   it("displays_validation_detail_string_when_register_returns_422_with_string_detail", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      makeFetchResponse(422, { detail: "Format d'email invalide." })
+    // handleResponse extrait le detail string → err.message = "Format d'email invalide."
+    mockRegisterUser.mockRejectedValueOnce(
+      new ApiAuthError("Format d'email invalide.", 422)
     );
 
     render(<RegisterPage />);
@@ -294,14 +291,10 @@ describe("RegisterPage", () => {
     });
   });
 
-  it("displays_concatenated_messages_when_register_returns_422_with_array_detail", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      makeFetchResponse(422, {
-        detail: [
-          { msg: "champ email requis", loc: ["body", "email"], type: "missing" },
-          { msg: "mot de passe trop court", loc: ["body", "password"], type: "too_short" },
-        ],
-      })
+  it("displays_fallback_message_when_register_returns_422_with_array_detail", async () => {
+    // handleResponse ne parse pas les tableaux → err.message = "HTTP 422" → fallback affiché
+    mockRegisterUser.mockRejectedValueOnce(
+      new ApiAuthError("HTTP 422", 422)
     );
 
     render(<RegisterPage />);
@@ -316,9 +309,7 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: /s'inscrire/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "champ email requis, mot de passe trop court"
-      );
+      expect(screen.getByRole("alert")).toHaveTextContent("Erreur de validation");
     });
   });
 
@@ -327,7 +318,7 @@ describe("RegisterPage", () => {
   // -------------------------------------------------------------------------
 
   it("displays_generic_server_error_when_register_returns_500", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(makeFetchResponse(500));
+    mockRegisterUser.mockRejectedValueOnce(new ApiAuthError("HTTP 500", 500));
 
     render(<RegisterPage />);
     const user = userEvent.setup();
@@ -348,11 +339,13 @@ describe("RegisterPage", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Erreur réseau (fetch rejette la promesse)
+  // Erreur réseau (NETWORK_ERROR)
   // -------------------------------------------------------------------------
 
-  it("displays_server_error_when_fetch_throws_network_error", async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error("Network Error"));
+  it("displays_server_error_when_registerUser_throws_network_error", async () => {
+    mockRegisterUser.mockRejectedValueOnce(
+      new ApiAuthError("Erreur réseau", 0, "NETWORK_ERROR")
+    );
 
     render(<RegisterPage />);
     const user = userEvent.setup();
@@ -377,7 +370,12 @@ describe("RegisterPage", () => {
   // -------------------------------------------------------------------------
 
   it("displays_manual_login_message_and_redirects_to_login_when_auto_signin_fails_after_registration", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(makeFetchResponse(201));
+    mockRegisterUser.mockResolvedValueOnce({
+      access_token: "tok",
+      refresh_token: "ref",
+      token_type: "bearer",
+      expires_in: 1800,
+    });
     mockSignIn.mockResolvedValueOnce({ error: "CredentialsSignin", url: null });
 
     render(<RegisterPage />);

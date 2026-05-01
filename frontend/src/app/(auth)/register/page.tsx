@@ -4,16 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-
-interface ApiErrorDetail {
-  msg: string;
-  loc?: string[];
-  type?: string;
-}
-
-interface ApiErrorResponse {
-  detail: string | ApiErrorDetail[];
-}
+import { registerUser, ApiAuthError } from "@/lib/api-auth";
 
 /** Icône Google SVG inline — évite une dépendance externe pour un seul icône */
 function GoogleIcon() {
@@ -42,22 +33,6 @@ function GoogleIcon() {
       />
     </svg>
   );
-}
-
-/**
- * Extrait un message lisible depuis une erreur de validation Pydantic (422).
- * Le champ `detail` peut être une string ou un tableau d'objets ValidationError.
- */
-function extractApiErrorMessage(body: ApiErrorResponse): string {
-  if (typeof body.detail === "string") {
-    return body.detail;
-  }
-
-  if (Array.isArray(body.detail) && body.detail.length > 0) {
-    return body.detail.map((e) => e.msg).join(", ");
-  }
-
-  return "Erreur de validation";
 }
 
 export default function RegisterPage() {
@@ -98,47 +73,39 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const res = await fetch(`${apiUrl}/api/v1/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      // Inscription via le helper centralisé — lève ApiAuthError en cas d'erreur HTTP
+      await registerUser(email, password);
+
+      // Inscription réussie — on crée la session Auth.js sans redemander les credentials
+      const signInResult = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
 
-      if (res.status === 201) {
-        // Inscription réussie — on crée la session Auth.js sans redemander les credentials
-        const signInResult = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
+      if (signInResult?.error) {
+        // Le login post-inscription a échoué (cas improbable mais géré)
+        setErrorMessage("Compte créé, mais la connexion automatique a échoué. Connectez-vous manuellement.");
+        router.push("/login");
+        return;
+      }
 
-        if (signInResult?.error) {
-          // Le login post-inscription a échoué (cas improbable mais géré)
-          setErrorMessage("Compte créé, mais la connexion automatique a échoué. Connectez-vous manuellement.");
-          router.push("/login");
+      router.push("/dashboard");
+    } catch (err) {
+      if (err instanceof ApiAuthError) {
+        if (err.status === 409) {
+          setErrorMessage("Cet email est déjà utilisé.");
           return;
         }
-
-        router.push("/dashboard");
-        return;
+        if (err.status === 422) {
+          // handleResponse dans api-auth.ts extrait déjà le detail si c'est une string.
+          // Si c'est un tableau (ValidationError Pydantic), err.message sera "HTTP 422".
+          const message = err.message !== `HTTP ${err.status}` ? err.message : "Erreur de validation";
+          setErrorMessage(message);
+          return;
+        }
       }
-
-      if (res.status === 409) {
-        setErrorMessage("Cet email est déjà utilisé.");
-        return;
-      }
-
-      if (res.status === 422) {
-        const body = (await res.json()) as ApiErrorResponse;
-        setErrorMessage(extractApiErrorMessage(body));
-        return;
-      }
-
-      // 500 ou toute autre erreur inattendue
-      setErrorMessage("Erreur serveur, réessayez.");
-    } catch {
-      // Erreur réseau (fetch a rejeté la promesse)
+      // Erreur réseau (NETWORK_ERROR) ou toute autre erreur inattendue
       setErrorMessage("Erreur serveur, réessayez.");
     } finally {
       setIsLoading(false);
@@ -153,7 +120,7 @@ export default function RegisterPage() {
     <>
       <h1
         className="text-2xl font-semibold text-center mb-6"
-        style={{ color: "#2B3A4A" }}
+        style={{ color: "var(--brightoff-text)" }}
       >
         Créer un compte
       </h1>
@@ -164,9 +131,9 @@ export default function RegisterPage() {
           role="alert"
           className="mb-4 px-4 py-3 rounded-lg text-sm"
           style={{
-            backgroundColor: "#FFF0EE",
-            border: "1px solid #E8503A",
-            color: "#E8503A",
+            backgroundColor: "var(--brightoff-error-bg)",
+            border: "1px solid var(--brightoff-error)",
+            color: "var(--brightoff-error)",
           }}
         >
           {errorMessage}
@@ -179,7 +146,7 @@ export default function RegisterPage() {
           <label
             htmlFor="email"
             className="block text-sm font-medium mb-1"
-            style={{ color: "#2B3A4A" }}
+            style={{ color: "var(--brightoff-text)" }}
           >
             Email
           </label>
@@ -193,17 +160,17 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
             style={{
-              border: "1px solid #D4E3ED",
-              color: "#2B3A4A",
-              backgroundColor: "#FFFFFF",
+              border: "1px solid var(--brightoff-border)",
+              color: "var(--brightoff-text)",
+              backgroundColor: "var(--brightoff-bg-secondary)",
             }}
             onFocus={(e) => {
               e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "#7AC7E6";
+              e.currentTarget.style.borderColor = "var(--brightoff-sky)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "#D4E3ED";
+              e.currentTarget.style.borderColor = "var(--brightoff-border)";
             }}
             placeholder="vous@exemple.fr"
           />
@@ -213,7 +180,7 @@ export default function RegisterPage() {
           <label
             htmlFor="password"
             className="block text-sm font-medium mb-1"
-            style={{ color: "#2B3A4A" }}
+            style={{ color: "var(--brightoff-text)" }}
           >
             Mot de passe
           </label>
@@ -228,17 +195,17 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
             style={{
-              border: "1px solid #D4E3ED",
-              color: "#2B3A4A",
-              backgroundColor: "#FFFFFF",
+              border: "1px solid var(--brightoff-border)",
+              color: "var(--brightoff-text)",
+              backgroundColor: "var(--brightoff-bg-secondary)",
             }}
             onFocus={(e) => {
               e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "#7AC7E6";
+              e.currentTarget.style.borderColor = "var(--brightoff-sky)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "#D4E3ED";
+              e.currentTarget.style.borderColor = "var(--brightoff-border)";
             }}
             placeholder="8 caractères minimum"
           />
@@ -248,7 +215,7 @@ export default function RegisterPage() {
           <label
             htmlFor="confirmPassword"
             className="block text-sm font-medium mb-1"
-            style={{ color: "#2B3A4A" }}
+            style={{ color: "var(--brightoff-text)" }}
           >
             Confirmer le mot de passe
           </label>
@@ -262,17 +229,17 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
             style={{
-              border: "1px solid #D4E3ED",
-              color: "#2B3A4A",
-              backgroundColor: "#FFFFFF",
+              border: "1px solid var(--brightoff-border)",
+              color: "var(--brightoff-text)",
+              backgroundColor: "var(--brightoff-bg-secondary)",
             }}
             onFocus={(e) => {
               e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "#7AC7E6";
+              e.currentTarget.style.borderColor = "var(--brightoff-sky)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "#D4E3ED";
+              e.currentTarget.style.borderColor = "var(--brightoff-border)";
             }}
             placeholder="Répétez votre mot de passe"
           />
@@ -283,12 +250,12 @@ export default function RegisterPage() {
           type="submit"
           disabled={isLoading}
           className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-white transition-opacity"
-          style={{ backgroundColor: "#FF705A" }}
+          style={{ backgroundColor: "var(--brightoff-coral)" }}
           onMouseEnter={(e) => {
-            if (!isLoading) e.currentTarget.style.backgroundColor = "#FFC2AC";
+            if (!isLoading) e.currentTarget.style.backgroundColor = "var(--brightoff-peach)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#FF705A";
+            e.currentTarget.style.backgroundColor = "var(--brightoff-coral)";
           }}
         >
           {isLoading ? "Création du compte…" : "S'inscrire"}
@@ -297,11 +264,11 @@ export default function RegisterPage() {
 
       {/* Séparateur */}
       <div className="flex items-center my-5">
-        <div className="flex-1 h-px" style={{ backgroundColor: "#D4E3ED" }} />
-        <span className="mx-3 text-xs" style={{ color: "#6B7F94" }}>
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--brightoff-border)" }} />
+        <span className="mx-3 text-xs" style={{ color: "var(--brightoff-text-secondary)" }}>
           ou
         </span>
-        <div className="flex-1 h-px" style={{ backgroundColor: "#D4E3ED" }} />
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--brightoff-border)" }} />
       </div>
 
       {/* Bouton Google — secondaire */}
@@ -311,15 +278,15 @@ export default function RegisterPage() {
         disabled={isLoading}
         className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors"
         style={{
-          border: "1px solid #D4E3ED",
-          color: "#2B3A4A",
-          backgroundColor: "#FFFFFF",
+          border: "1px solid var(--brightoff-border)",
+          color: "var(--brightoff-text)",
+          backgroundColor: "var(--brightoff-bg-secondary)",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "#F5FAFE";
+          e.currentTarget.style.backgroundColor = "var(--brightoff-hover-light)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "#FFFFFF";
+          e.currentTarget.style.backgroundColor = "var(--brightoff-bg-secondary)";
         }}
       >
         <GoogleIcon />
@@ -327,17 +294,17 @@ export default function RegisterPage() {
       </button>
 
       {/* Lien vers connexion */}
-      <p className="mt-6 text-center text-sm" style={{ color: "#6B7F94" }}>
+      <p className="mt-6 text-center text-sm" style={{ color: "var(--brightoff-text-secondary)" }}>
         Déjà un compte ?{" "}
         <Link
           href="/login"
           className="font-medium"
-          style={{ color: "#7AC7E6" }}
+          style={{ color: "var(--brightoff-sky)" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#5BB8DB";
+            e.currentTarget.style.color = "var(--brightoff-info)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#7AC7E6";
+            e.currentTarget.style.color = "var(--brightoff-sky)";
           }}
         >
           Se connecter
