@@ -105,19 +105,21 @@ body {
   font-feature-settings: 'cv11', 'ss01';
 }
 
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-}
+@layer base {
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
 
-button {
-  font-family: inherit;
-  cursor: pointer;
-  border: none;
-  background: none;
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
 }
 
 /* ======================================================
@@ -423,6 +425,126 @@ button {
     background: var(--gradient-brand);
     border-radius: 999px;
     transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* --- Layout : centrage vertical (pages auth) --- */
+  .center-screen {
+    min-height: calc(100vh - 73px); /* 73px = hauteur nav-public */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 24px;
+  }
+
+  /* --- Layout : container page connectée (1200px) --- */
+  .page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 48px 72px;
+  }
+
+  /* --- Landing : Hero --- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 80px 0 100px;
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    margin: 0 0 24px;
+    text-wrap: balance;
+    color: var(--color-text);
+  }
+  .hero p.sub {
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    margin: 0 0 32px;
+    max-width: 560px;
+    text-wrap: pretty;
+  }
+  .hero .micro {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: 12px;
+  }
+
+  /* --- Landing : section "Comment ça marche" --- */
+  .how {
+    background: var(--color-bg-card);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding: 80px 48px;
+  }
+  .how-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .how h2 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-align: center;
+    margin: 0 0 12px;
+    color: var(--color-text);
+  }
+  .how .h2sub {
+    text-align: center;
+    color: var(--color-text-secondary);
+    margin: 0 0 56px;
+    font-size: 17px;
+  }
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .how-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 32px 28px;
+  }
+  .how-card .icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 26px;
+  }
+  .how-card h3 {
+    margin: 0 0 8px;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+  }
+  .how-card p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  /* --- Footer landing --- */
+  .footer {
+    padding: 32px 48px;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    border-top: 1px solid var(--color-border);
   }
 
   /* --- Badges --- */

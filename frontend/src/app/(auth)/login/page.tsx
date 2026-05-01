@@ -4,6 +4,7 @@ import { useState, FormEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Field, Input } from "@/components/ui";
 
 /** Icône Google SVG inline — évite une dépendance externe pour un seul icône */
 function GoogleIcon() {
@@ -107,11 +108,48 @@ function LoginForm() {
   return (
     <>
       <h1
-        className="text-2xl font-semibold text-center mb-6"
+        className="text-2xl font-semibold text-center mb-2"
         style={{ color: "var(--color-text)" }}
       >
-        Se connecter
+        Bon retour 👋
       </h1>
+      <p
+        className="text-center text-sm mb-6"
+        style={{ color: "var(--color-text-secondary)" }}
+      >
+        Connectez-vous pour retrouver vos matches
+      </p>
+
+      {/* Bouton Google — en haut, avant le formulaire */}
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        disabled={isLoading}
+        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg text-sm font-semibold transition-colors mb-5"
+        style={{
+          border: "1.5px solid var(--color-border)",
+          color: "var(--color-text)",
+          backgroundColor: "var(--color-bg-card)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "var(--color-hover-light)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "var(--color-bg-card)";
+        }}
+      >
+        <GoogleIcon />
+        Continuer avec Google
+      </button>
+
+      {/* Séparateur OU */}
+      <div className="flex items-center mb-5">
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+        <span className="mx-3 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+          OU
+        </span>
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+      </div>
 
       {/* Message d'erreur global */}
       {displayedError && (
@@ -131,122 +169,47 @@ function LoginForm() {
       {/* Formulaire email / password */}
       <form onSubmit={handleCredentialsSubmit} noValidate>
         <div className="mb-4">
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium mb-1"
-            style={{ color: "var(--color-text)" }}
-          >
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
-            style={{
-              border: "1px solid var(--color-border)",
-              color: "var(--color-text)",
-              backgroundColor: "var(--color-bg-card)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--color-primary)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--color-border)";
-            }}
-            placeholder="vous@exemple.fr"
-          />
+          <Field label="Email" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              placeholder="vous@exemple.fr"
+            />
+          </Field>
         </div>
 
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-1">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium"
-              style={{ color: "var(--color-text)" }}
-            >
-              Mot de passe
-            </label>
-          </div>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
-            style={{
-              border: "1px solid var(--color-border)",
-              color: "var(--color-text)",
-              backgroundColor: "var(--color-bg-card)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--color-primary)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--color-border)";
-            }}
-            placeholder="••••••••"
-          />
+          <Field label="Mot de passe" htmlFor="password">
+            <Input
+              id="password"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              placeholder="••••••••"
+            />
+          </Field>
         </div>
 
-        {/* Bouton primaire — corail */}
-        <button
+        <Button
+          variant="coral"
+          size="lg"
           type="submit"
           disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-white transition-opacity"
-          style={{ backgroundColor: "var(--color-accent)" }}
-          onMouseEnter={(e) => {
-            if (!isLoading) e.currentTarget.style.backgroundColor = "var(--color-accent-soft)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--color-accent)";
-          }}
+          className="w-full"
         >
           {isLoading ? "Connexion…" : "Se connecter"}
-        </button>
+        </Button>
       </form>
-
-      {/* Séparateur */}
-      <div className="flex items-center my-5">
-        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
-        <span className="mx-3 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-          ou
-        </span>
-        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
-      </div>
-
-      {/* Bouton Google — secondaire */}
-      <button
-        type="button"
-        onClick={handleGoogleSignIn}
-        disabled={isLoading}
-        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors"
-        style={{
-          border: "1px solid var(--color-border)",
-          color: "var(--color-text)",
-          backgroundColor: "var(--color-bg-card)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--color-hover-light)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--color-bg-card)";
-        }}
-      >
-        <GoogleIcon />
-        Continuer avec Google
-      </button>
 
       {/* Lien vers inscription */}
       <p className="mt-6 text-center text-sm" style={{ color: "var(--color-text-secondary)" }}>
@@ -255,14 +218,8 @@ function LoginForm() {
           href="/register"
           className="font-medium"
           style={{ color: "var(--color-primary)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "var(--color-info)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--color-primary)";
-          }}
         >
-          S&apos;inscrire
+          Créer un compte
         </Link>
       </p>
     </>

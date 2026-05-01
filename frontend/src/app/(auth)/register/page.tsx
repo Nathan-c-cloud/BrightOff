@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { registerUser, ApiAuthError } from "@/lib/api-auth";
+import { Button, Field, Input } from "@/components/ui";
 
 /** Icône Google SVG inline — évite une dépendance externe pour un seul icône */
 function GoogleIcon() {
@@ -119,11 +120,48 @@ export default function RegisterPage() {
   return (
     <>
       <h1
-        className="text-2xl font-semibold text-center mb-6"
+        className="text-2xl font-semibold text-center mb-2"
         style={{ color: "var(--color-text)" }}
       >
-        Créer un compte
+        Rejoignez BrightOff
       </h1>
+      <p
+        className="text-center text-sm mb-6"
+        style={{ color: "var(--color-text-secondary)" }}
+      >
+        Créez votre compte gratuit en 30 secondes
+      </p>
+
+      {/* Bouton Google — en haut */}
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        disabled={isLoading}
+        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg text-sm font-semibold transition-colors mb-5"
+        style={{
+          border: "1.5px solid var(--color-border)",
+          color: "var(--color-text)",
+          backgroundColor: "var(--color-bg-card)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "var(--color-hover-light)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "var(--color-bg-card)";
+        }}
+      >
+        <GoogleIcon />
+        Continuer avec Google
+      </button>
+
+      {/* Séparateur OU */}
+      <div className="flex items-center mb-5">
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+        <span className="mx-3 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+          OU
+        </span>
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+      </div>
 
       {/* Message d'erreur global */}
       {errorMessage && (
@@ -143,155 +181,66 @@ export default function RegisterPage() {
       {/* Formulaire email / password / confirmation */}
       <form onSubmit={handleSubmit} noValidate>
         <div className="mb-4">
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium mb-1"
-            style={{ color: "var(--color-text)" }}
-          >
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
-            style={{
-              border: "1px solid var(--color-border)",
-              color: "var(--color-text)",
-              backgroundColor: "var(--color-bg-card)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--color-primary)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--color-border)";
-            }}
-            placeholder="vous@exemple.fr"
-          />
+          <Field label="Email" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              placeholder="vous@exemple.fr"
+            />
+          </Field>
         </div>
 
         <div className="mb-4">
-          <label
+          <Field
+            label="Mot de passe"
             htmlFor="password"
-            className="block text-sm font-medium mb-1"
-            style={{ color: "var(--color-text)" }}
           >
-            Mot de passe
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
-            style={{
-              border: "1px solid var(--color-border)",
-              color: "var(--color-text)",
-              backgroundColor: "var(--color-bg-card)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--color-primary)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--color-border)";
-            }}
-            placeholder="8 caractères minimum"
-          />
+            <Input
+              id="password"
+              type="password"
+              name="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              placeholder="10 caractères minimum"
+            />
+          </Field>
         </div>
 
         <div className="mb-6">
-          <label
-            htmlFor="confirmPassword"
-            className="block text-sm font-medium mb-1"
-            style={{ color: "var(--color-text)" }}
-          >
-            Confirmer le mot de passe
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
-            style={{
-              border: "1px solid var(--color-border)",
-              color: "var(--color-text)",
-              backgroundColor: "var(--color-bg-card)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--color-primary)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--color-border)";
-            }}
-            placeholder="Répétez votre mot de passe"
-          />
+          <Field label="Confirmer le mot de passe" htmlFor="confirmPassword">
+            <Input
+              id="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={isLoading}
+              placeholder="Répétez votre mot de passe"
+            />
+          </Field>
         </div>
 
-        {/* Bouton primaire — corail */}
-        <button
+        <Button
+          variant="coral"
+          size="lg"
           type="submit"
           disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-white transition-opacity"
-          style={{ backgroundColor: "var(--color-accent)" }}
-          onMouseEnter={(e) => {
-            if (!isLoading) e.currentTarget.style.backgroundColor = "var(--color-accent-soft)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--color-accent)";
-          }}
+          className="w-full"
         >
           {isLoading ? "Création du compte…" : "S'inscrire"}
-        </button>
+        </Button>
       </form>
-
-      {/* Séparateur */}
-      <div className="flex items-center my-5">
-        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
-        <span className="mx-3 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-          ou
-        </span>
-        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
-      </div>
-
-      {/* Bouton Google — secondaire */}
-      <button
-        type="button"
-        onClick={handleGoogleSignIn}
-        disabled={isLoading}
-        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors"
-        style={{
-          border: "1px solid var(--color-border)",
-          color: "var(--color-text)",
-          backgroundColor: "var(--color-bg-card)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--color-hover-light)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--color-bg-card)";
-        }}
-      >
-        <GoogleIcon />
-        Continuer avec Google
-      </button>
 
       {/* Lien vers connexion */}
       <p className="mt-6 text-center text-sm" style={{ color: "var(--color-text-secondary)" }}>
@@ -300,12 +249,6 @@ export default function RegisterPage() {
           href="/login"
           className="font-medium"
           style={{ color: "var(--color-primary)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "var(--color-info)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--color-primary)";
-          }}
         >
           Se connecter
         </Link>
