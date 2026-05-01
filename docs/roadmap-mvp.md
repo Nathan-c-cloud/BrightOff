@@ -83,18 +83,20 @@ Un utilisateur peut créer un compte, se connecter, et accéder à une page prot
 
 - Page `/onboarding` (post-inscription, affichée une seule fois) — design-guide.md §4
 - Zone drag-and-drop pour l'upload de CV
-- Upload vers S3 via endpoint `POST /api/v1/profile/upload-cv`
+- Upload vers S3 via endpoint `POST /api/v1/cvs/upload` (router `cvs` du contrat OpenAPI Sprint 1)
+- Réponse de l'upload : `CVUploadResponse` qui inclut le `cv_id` à utiliser pour suivre l'avancement du parsing
 - Validation format CV par Claude avant extraction : si le document n'est pas un CV (facture, contrat, autre), retour
   400 avec message "Ce document ne semble pas être un CV. Merci d'uploader un CV au format PDF ou DOCX."
 - Parsing asynchrone via FastAPI BackgroundTasks : l'utilisateur n'attend pas sur la page d'onboarding. Après upload
   accepté, redirection immédiate vers le dashboard (qui affiche l'état "Profil en cours de construction")
-- États backend : `profile.parsing_status ∈ {pending, processing, ready, failed}`
-- Si parsing échoue : status `failed` + message d'erreur exposé via `/me` — UX permet de relancer ou de remplir
-  manuellement
+- États backend : `cv.parsing_status ∈ {pending, processing, ready, failed}` — porté par la ressource CV (et non le
+  profil), exposé via `GET /api/v1/cvs/{cv_id}`
+- Si parsing échoue : status `failed` + message d'erreur exposé via `GET /api/v1/cvs/{cv_id}` — UX permet de relancer
+  ou de remplir manuellement
 
 **Notification fin de parsing**
 
-- Frontend polling sur `GET /api/v1/auth/me` toutes les 5-10 secondes tant que `parsing_status ≠ ready`
+- Frontend polling sur `GET /api/v1/cvs/{cv_id}` toutes les 5-10 secondes tant que `parsing_status ∉ {ready, failed}`
 - Quand `ready` : pop-up in-app "Ton profil est prêt" + bouton "Voir mon profil" → redirection `/profile`
 
 **Page profil**
@@ -104,6 +106,10 @@ Un utilisateur peut créer un compte, se connecter, et accéder à une page prot
 - Sections : Compétences techniques (chips éditables + ajout inline), Soft skills, Expériences (timeline), Formation,
   Langues
 - Profil pré-rempli depuis le parsing — édition manuelle possible
+- Endpoints d'édition (déjà définis dans le contrat OpenAPI Sprint 1, à implémenter ici) :
+    - `GET /api/v1/profile` / `PUT /api/v1/profile` — lecture / mise à jour profil
+    - `POST /api/v1/profile/skills` / `PUT /api/v1/profile/skills/{skill_id}` / `DELETE /api/v1/profile/skills/{skill_id}`
+    - `POST /api/v1/profile/experiences` / `DELETE /api/v1/profile/experiences/{experience_id}`
 
 **Base de données**
 
@@ -120,7 +126,8 @@ Un utilisateur peut créer un compte, se connecter, et accéder à une page prot
 ### Tests
 
 - Unitaires : service CV parsing (mock Claude API), validation format CV
-- Intégration : endpoint upload, polling `/me`, transitions de statut (`pending` → `processing` → `ready` / `failed`)
+- Intégration : endpoint upload (`/cvs/upload`), polling `/cvs/{cv_id}`, transitions de statut (`pending` →
+  `processing` → `ready` / `failed`)
 
 ### Mobile
 
@@ -239,7 +246,8 @@ Premier "wow moment" testable. Staging AWS fonctionnel — la stack tourne sur A
 
 ### Gap Analysis backend
 
-- Endpoint `GET /api/v1/matches/{offer_id}/gap-analysis`
+- Endpoint `GET /api/v1/matches/{match_id}/gap-analysis` (router `gap_analysis` du contrat OpenAPI Sprint 1 — basé sur
+  `match_id`, pas `offer_id`, pour distinguer les analyses propres à l'utilisateur courant)
 - Appel Claude API : compétences présentes vs manquantes, classification must-have/nice-to-have, impact chiffré sur le
   score, recommandations de formations
 - Cache en base — table `gap_analyses`
@@ -320,9 +328,9 @@ du coût opérationnel documentée dans `docs/cout-operationnel-mvp.md`.
 
 ### RGPD
 
-- Endpoint `DELETE /api/v1/users/me` : suppression compte + données associées (profil, skills, refresh_tokens,
-  gap_analyses) + suppression du CV sur S3
-- Endpoint `GET /api/v1/users/me/export` : export JSON de toutes les données utilisateur
+- Endpoint `DELETE /api/v1/auth/me` : suppression compte + données associées (profil, skills, refresh_tokens,
+  gap_analyses) + suppression du CV sur S3 (extension du router `auth` existant — pas de nouveau router `/users`)
+- Endpoint `GET /api/v1/auth/me/export` : export JSON de toutes les données utilisateur (extension du router `auth`)
 - Consentement explicite à l'inscription : checkbox CGU + politique de confidentialité
 - Footer landing : liens "Mentions légales", "CGU", "Politique de confidentialité"
 - Pages `/legal/mentions`, `/legal/cgu`, `/legal/confidentialite`

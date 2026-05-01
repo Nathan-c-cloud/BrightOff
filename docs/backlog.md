@@ -87,7 +87,7 @@ valider après l'acquisition des premiers utilisateurs.
 Page paramètres complète : compte (email, mot de passe), notifications (préférences email/in-app), préférences
 matching (chips types de contrat, sliders salaire/distance), confidentialité (mode anonyme, blocage d'employeurs),
 sécurité (2FA, sessions actives), apparence (thème, langue), zone à risque (suppression de compte). Le MVP expose
-uniquement l'endpoint `DELETE /me` (obligation RGPD) sans page paramètres dédiée.
+uniquement l'endpoint backend `DELETE /api/v1/auth/me` (obligation RGPD) sans page paramètres dédiée.
 
 **Système de favoris**
 Icône coeur sur les cartes d'offres pour sauvegarder une offre et la retrouver dans un onglet dédié. Reporté car le MVP
