@@ -3,6 +3,29 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ---- Palette BrightOff (charte-couleurs.md) ---- */
+  /* Principales */
+  --brightoff-sky: #7AC7E6;         /* Bleu ciel lumineux — navigation, liens */
+  --brightoff-sky-light: #E6F7FD;   /* Bleu glacé — fond de cartes */
+  --brightoff-coral: #FF705A;       /* Corail vif — boutons CTA, accents */
+  --brightoff-peach: #FFC2AC;       /* Pêche — hover boutons corail, highlights */
+  /* Sémantiques */
+  --brightoff-success: #ADF7B6;     /* Menthe — compétences acquises */
+  --brightoff-warning: #FFB088;     /* Pêche foncé — scores moyens */
+  --brightoff-error: #E8503A;       /* Corail foncé — erreurs */
+  --brightoff-info: #5BB8DB;        /* Bleu ciel moyen — hover liens */
+  /* Neutres */
+  --brightoff-bg: #FFF7F1;          /* Crème chaud — fond de page */
+  --brightoff-bg-secondary: #FFFFFF; /* Blanc — fond cartes, modals */
+  --brightoff-text: #2B3A4A;        /* Bleu-gris foncé — texte principal */
+  --brightoff-text-secondary: #6B7F94; /* Gris moyen — labels, descriptions */
+  --brightoff-border: #D4E3ED;      /* Gris clair bleuté — bordures, inputs */
+  /* Dérivés d'usage courant (non dans la charte, mais présents dans l'UI) */
+  --brightoff-error-bg: #FFF0EE;    /* Fond zone d'erreur (alert) */
+  --brightoff-hover-light: #F5FAFE; /* Hover bouton secondaire / Google */
+  /* Dégradé de marque */
+  --brightoff-gradient: linear-gradient(90deg, #7AC7E6, #FF705A);
 }
 
 @theme inline {

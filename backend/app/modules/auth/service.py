@@ -52,11 +52,3 @@ async def create_or_get_user_google(db: AsyncSession, email: str, oauth_id: str)
     db.add(user)
     await db.flush()
     return user
-
-
-async def link_google_to_existing_user(db: AsyncSession, user: User, oauth_id: str) -> User:
-    """Lie un compte Google à un utilisateur existant."""
-    user.oauth_provider = "google"
-    user.oauth_id = oauth_id
-    await db.flush()
-    return user

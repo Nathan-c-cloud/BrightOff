@@ -24,19 +24,19 @@ export default function SignOutButton({ signOutAction }: SignOutButtonProps) {
         type="submit"
         className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors"
         style={{
-          border: "1px solid #D4E3ED",
-          color: "#2B3A4A",
-          backgroundColor: "#FFFFFF",
+          border: "1px solid var(--brightoff-border)",
+          color: "var(--brightoff-text)",
+          backgroundColor: "var(--brightoff-bg-secondary)",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "#FFF0EE";
-          e.currentTarget.style.borderColor = "#FF705A";
-          e.currentTarget.style.color = "#FF705A";
+          e.currentTarget.style.backgroundColor = "var(--brightoff-error-bg)";
+          e.currentTarget.style.borderColor = "var(--brightoff-coral)";
+          e.currentTarget.style.color = "var(--brightoff-coral)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "#FFFFFF";
-          e.currentTarget.style.borderColor = "#D4E3ED";
-          e.currentTarget.style.color = "#2B3A4A";
+          e.currentTarget.style.backgroundColor = "var(--brightoff-bg-secondary)";
+          e.currentTarget.style.borderColor = "var(--brightoff-border)";
+          e.currentTarget.style.color = "var(--brightoff-text)";
         }}
       >
         Se déconnecter
