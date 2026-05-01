@@ -1,49 +1,590 @@
 @import "tailwindcss";
 
+/* ======================================================
+   DESIGN TOKENS — BrightOff
+   Source de vérité : docs/charte-couleurs.md
+   Maquette de référence : assets/maquettes/brightoff-claude-design/styles.css
+   ====================================================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* --- Couleurs principales --- */
+  --color-primary: #7AC7E6;          /* Bleu ciel lumineux — navigation, liens */
+  --color-primary-light: #E6F7FD;    /* Bleu glacé — fond de cartes (charte: --color-primary-light) */
 
-  /* ---- Palette BrightOff (charte-couleurs.md) ---- */
-  /* Principales */
-  --brightoff-sky: #7AC7E6;         /* Bleu ciel lumineux — navigation, liens */
-  --brightoff-sky-light: #E6F7FD;   /* Bleu glacé — fond de cartes */
-  --brightoff-coral: #FF705A;       /* Corail vif — boutons CTA, accents */
-  --brightoff-peach: #FFC2AC;       /* Pêche — hover boutons corail, highlights */
-  /* Sémantiques */
-  --brightoff-success: #ADF7B6;     /* Menthe — compétences acquises */
-  --brightoff-warning: #FFB088;     /* Pêche foncé — scores moyens */
-  --brightoff-error: #E8503A;       /* Corail foncé — erreurs */
-  --brightoff-info: #5BB8DB;        /* Bleu ciel moyen — hover liens */
-  /* Neutres */
-  --brightoff-bg: #FFF7F1;          /* Crème chaud — fond de page */
-  --brightoff-bg-secondary: #FFFFFF; /* Blanc — fond cartes, modals */
-  --brightoff-text: #2B3A4A;        /* Bleu-gris foncé — texte principal */
-  --brightoff-text-secondary: #6B7F94; /* Gris moyen — labels, descriptions */
-  --brightoff-border: #D4E3ED;      /* Gris clair bleuté — bordures, inputs */
-  /* Dérivés d'usage courant (non dans la charte, mais présents dans l'UI) */
-  --brightoff-error-bg: #FFF0EE;    /* Fond zone d'erreur (alert) */
-  --brightoff-hover-light: #F5FAFE; /* Hover bouton secondaire / Google */
-  /* Dégradé de marque */
-  --brightoff-gradient: linear-gradient(90deg, #7AC7E6, #FF705A);
+  /* --- Accent --- */
+  --color-accent: #FF705A;           /* Corail vif — boutons CTA, accents */
+  --color-accent-soft: #FFC2AC;      /* Pêche — hover boutons corail, highlights */
+  --color-accent-strong: #E8503A;    /* Corail foncé — même valeur que --color-error */
+
+  /* --- Sémantiques --- */
+  --color-success: #ADF7B6;          /* Menthe — compétences acquises, match élevé */
+  --color-warning: #FFB088;          /* Pêche foncé — scores moyens */
+  --color-error: #E8503A;            /* Corail foncé — erreurs, must-have manquants */
+  --color-info: #5BB8DB;             /* Bleu ciel moyen — hover liens, tooltips */
+
+  /* --- Neutres --- */
+  --color-bg: #FFF7F1;               /* Crème chaud — fond de page général */
+  --color-bg-card: #FFFFFF;          /* Blanc — fond cartes, modals */
+  --color-text: #2B3A4A;             /* Bleu-gris foncé — corps de texte */
+  --color-text-secondary: #6B7F94;   /* Gris moyen — labels, descriptions */
+  --color-border: #D4E3ED;           /* Gris clair bleuté — bordures, inputs */
+
+  /* --- Tokens dérivés (non dans la charte, présents dans l'UI) --- */
+  --color-error-bg: #FFF0EE;         /* Fond zone d'erreur (alerte) */
+  --color-hover-light: #F5FAFE;      /* Hover bouton secondaire / Google */
+
+  /* --- Couleurs de texte sur fonds colorés (WCAG AA) --- */
+  --color-text-placeholder: #9aafc1;     /* Texte placeholder dans les inputs */
+  --color-primary-text: #2680a0;         /* Texte sur fond --color-primary-light (badge-skill) */
+  --color-success-text: #1f5c2a;         /* Texte sur fond --color-success (badge-mint) */
+  --color-warning-text: #6b3a26;         /* Texte sur fond --color-warning (badge-peach-dark) */
+  --color-accent-soft-text: #5a2a1d;     /* Texte sur fond --color-accent-soft (encarts reco) */
+
+  /* --- Ombres --- */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 6px 18px rgba(0, 0, 0, 0.10);
+
+  /* --- Rayons --- */
+  --radius-card: 8px;
+  --radius-btn: 6px;
+  --radius-badge: 20px;
+
+  /* --- Dégradé de marque --- */
+  --gradient-brand: linear-gradient(95deg, var(--color-primary) 0%, var(--color-accent) 100%);
+
+  /* --- ScoreBar --- */
+  /* NOTE pour project_writer : synchroniser --color-bar-track dans docs/charte-couleurs.md (story future) */
+  --color-bar-track: #f0e9e2;          /* Fond de la barre de score (track) — crème chaud clair */
 }
 
+/* ======================================================
+   TAILWIND v4 — @theme inline
+   Expose les tokens CSS comme classes utilitaires Tailwind
+   bg-primary, text-accent, border-border, etc.
+   ====================================================== */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Couleurs */
+  --color-primary: var(--color-primary);
+  --color-primary-light: var(--color-primary-light);
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+  --color-bg: var(--color-bg);
+  --color-bg-card: var(--color-bg-card);
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-border: var(--color-border);
+  --color-error-bg: var(--color-error-bg);
+  --color-hover-light: var(--color-hover-light);
+  --color-text-placeholder: var(--color-text-placeholder);
+  --color-primary-text: var(--color-primary-text);
+  --color-success-text: var(--color-success-text);
+  --color-warning-text: var(--color-warning-text);
+  --color-accent-soft-text: var(--color-accent-soft-text);
+  --color-bar-track: var(--color-bar-track);
+
+  /* Police */
+  --font-sans: var(--font-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ======================================================
+   BASE
+   ====================================================== */
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+@layer base {
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+}
+
+/* ======================================================
+   COMPOSANTS RÉUTILISABLES
+   Portés depuis assets/maquettes/brightoff-claude-design/styles.css
+   Règle : toutes les valeurs hex remplacées par var(--color-*)
+   Ne pas porter ici : .dropzone, .nav-app, .score-bar, .welcome
+   (→ composants React S3-02/S3-03)
+   ====================================================== */
+@layer components {
+
+  /* --- Boutons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2;
+    padding: 12px 22px;
+    border-radius: var(--radius-btn);
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+
+  .btn-coral {
+    background: var(--color-accent);
+    color: white;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 4px 12px rgba(255, 112, 90, 0.25);
+  }
+  .btn-coral:hover {
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+    transform: translateY(-1px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 6px 16px rgba(255, 194, 172, 0.5);
+  }
+
+  .btn-sky-outline {
+    background: var(--color-bg-card);
+    color: var(--color-primary);
+    border: 1.5px solid var(--color-primary);
+  }
+  .btn-sky-outline:hover {
+    background: var(--color-primary-light);
+  }
+
+  .btn-ghost {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+  .btn-ghost:hover {
+    color: var(--color-primary);
+  }
+
+  .btn-lg {
+    padding: 15px 28px;
+    font-size: 16px;
+  }
+
+  /* Neutralise le text-decoration: underline de @layer base { a:hover }
+     quand un <Link> porte une classe .btn (bouton-lien landing, nav publique). */
+  .btn:hover {
+    text-decoration: none;
+  }
+
+  /* --- Carte --- */
+  .card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* --- Input et champ formulaire --- */
+  .input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-btn);
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(122, 199, 230, 0.18);
+  }
+  .input::placeholder {
+    color: var(--color-text-placeholder);
+  }
+
+  /* Variante erreur — bordure corail foncé + focus shadow rouge */
+  .input-error {
+    border-color: var(--color-error);
+  }
+  .input-error:focus {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(232, 80, 58, 0.18);
+  }
+
+  label.field {
+    display: block;
+    margin-bottom: 14px;
+  }
+  label.field > span {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 6px;
+  }
+
+  /* --- Avatar --- */
+  /* Gradient pêche→corail conforme maquette assets/maquettes/brightoff-claude-design/styles.css */
+  /* Les hex de la maquette sont remplacés par les tokens CSS (--color-accent-soft, --color-accent) */
+  .avatar-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-soft), var(--color-accent));
+    color: white;
+    font-weight: 700;
+    font-size: 11px;
+    @apply flex items-center justify-center;
+    flex-shrink: 0;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-soft), var(--color-accent));
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    @apply flex items-center justify-center;
+    flex-shrink: 0;
+  }
+
+  .avatar-lg {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-soft), var(--color-accent));
+    color: white;
+    font-weight: 700;
+    font-size: 32px;
+    @apply flex items-center justify-center;
+    flex-shrink: 0;
+  }
+
+  /* --- Navigation publique (header pages landing / login / register) --- */
+  .nav-public {
+    background: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border);
+    padding: 16px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-public-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* --- Navigation app (header pages connectées — fond bleu ciel) --- */
+  .nav-app {
+    background: var(--color-primary);
+    padding: 14px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+  }
+  .nav-app-left {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+  }
+  .nav-links {
+    display: flex;
+    gap: 28px;
+  }
+  /* Lien de navigation app — blanc semi-transparent par défaut */
+  .nav-link {
+    color: rgba(255, 255, 255, 0.82);
+    font-weight: 500;
+    font-size: 15px;
+    padding: 6px 0;
+    border-bottom: 2px solid transparent;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .nav-link:hover {
+    color: white;
+    text-decoration: none;
+  }
+  .nav-link.active {
+    color: white;
+    border-bottom-color: white;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  /* --- Cloche notifications --- */
+  .bell-btn {
+    position: relative;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .bell-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  /* Badge count sur la cloche — fond corail, bordure bleu ciel */
+  .bell-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--color-accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border: 1.5px solid var(--color-primary);
+  }
+
+  /* --- User meta (avatar + nom) dans nav-app --- */
+  .user-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 4px 8px 4px 4px;
+    border-radius: 8px;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .user-meta:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .user-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+  }
+
+  /* --- Dropdown menu utilisateur --- */
+  .user-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-hover);
+    min-width: 160px;
+    z-index: 100;
+    overflow: hidden;
+  }
+  .user-menu-item {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .user-menu-item:hover {
+    background: var(--color-primary-light);
+    color: var(--color-primary-text);
+  }
+
+  /* --- ScoreBar — barre de progression avec dégradé de marque --- */
+  .bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-bar-track);
+    overflow: hidden;
+    width: 100%;
+  }
+  .bar > i {
+    display: block;
+    height: 100%;
+    background: var(--gradient-brand);
+    border-radius: 999px;
+    transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* --- Layout : centrage vertical (pages auth) --- */
+  .center-screen {
+    min-height: calc(100vh - 73px); /* 73px = hauteur nav-public */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 24px;
+  }
+
+  /* --- Layout : container page connectée (1200px) --- */
+  .page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 48px 72px;
+  }
+
+  /* --- Landing : Hero --- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 80px 0 100px;
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    margin: 0 0 24px;
+    text-wrap: balance;
+    color: var(--color-text);
+  }
+  .hero p.sub {
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    margin: 0 0 32px;
+    max-width: 560px;
+    text-wrap: pretty;
+  }
+  .hero .micro {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: 12px;
+  }
+
+  /* --- Landing : section "Comment ça marche" --- */
+  .how {
+    background: var(--color-bg-card);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding: 80px 48px;
+  }
+  .how-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .how h2 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-align: center;
+    margin: 0 0 12px;
+    color: var(--color-text);
+  }
+  .how .h2sub {
+    text-align: center;
+    color: var(--color-text-secondary);
+    margin: 0 0 56px;
+    font-size: 17px;
+  }
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .how-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 32px 28px;
+  }
+  .how-card .icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 26px;
+  }
+  .how-card h3 {
+    margin: 0 0 8px;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+  }
+  .how-card p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  /* --- Footer landing --- */
+  .footer {
+    padding: 32px 48px;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* --- Badges --- */
+  .badge {
+    @apply inline-flex items-center;
+    padding: 6px 12px;
+    border-radius: var(--radius-badge);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  /* Compétence acquise — bleu ciel */
+  .badge-skill {
+    background: var(--color-primary-light);
+    color: var(--color-primary-text);
+  }
+
+  /* Succès — menthe */
+  .badge-mint {
+    background: var(--color-success);
+    color: var(--color-success-text);
+  }
+
+  /* Erreur / must-have manquant — corail foncé */
+  .badge-coral-dark {
+    background: var(--color-accent-strong);
+    color: white;
+  }
+
+  /* Avertissement / nice-to-have — pêche foncé */
+  .badge-peach-dark {
+    background: var(--color-warning);
+    color: var(--color-warning-text);
+  }
+
 }
