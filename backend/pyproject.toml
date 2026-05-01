@@ -26,6 +26,9 @@ ignore = []
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Ignore unused imports in __init__.py files
 "alembic/versions/*.py" = ["E501", "I001", "UP007", "UP035", "W291"]  # Auto-generated migrations
+# Le system prompt LLM et les tableaux Markdown dans le rapport contiennent des lignes
+# intentionnellement longues pour la lisibilité — E501 non pertinent ici.
+"scripts/benchmark_claude_cv.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

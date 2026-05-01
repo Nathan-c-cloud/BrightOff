@@ -32,6 +32,14 @@ build/
 # Logs
 *.log
 
+# Benchmark CVs — fichiers réels personnels, jamais commités
+# Le dossier est tracké via .gitkeep pour que la structure soit visible
+backend/scripts/benchmark_cvs/*
+!backend/scripts/benchmark_cvs/.gitkeep
+!backend/scripts/benchmark_cvs/README.md
+# Les rapports de benchmark générés (pas commités — re-générables)
+backend/scripts/benchmark_results/
+
 # Terraform
 # Le répertoire de travail local généré par "terraform init" — jamais à commiter
 infrastructure/.terraform/
