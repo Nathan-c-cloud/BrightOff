@@ -4,7 +4,7 @@ from uuid import UUID
 import google.auth.exceptions
 import google.auth.transport.requests
 import google.oauth2.id_token
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,22 @@ from app.modules.auth.jwt import JWTError
 from app.modules.auth.models import User
 from app.modules.auth.service import EmailAlreadyRegisteredError
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+
+async def _no_store_cache(response: Response) -> None:
+    """Dépendance FastAPI — injecte Cache-Control: no-store sur les réponses auth.
+
+    Empêche la mise en cache des tokens JWT par les proxies et navigateurs.
+    Appliquée uniquement sur /api/v1/auth/* : les futures routes /matches et
+    /offers peuvent légitimement bénéficier du cache client-side.
+    """
+    response.headers["Cache-Control"] = "no-store"
+
+
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"],
+    dependencies=[Depends(_no_store_cache)],  # noqa: B008
+)
 
 _bearer_scheme = HTTPBearer()
 
