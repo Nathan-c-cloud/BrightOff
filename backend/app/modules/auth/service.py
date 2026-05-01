@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.auth.models import User
@@ -20,7 +21,13 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
 
 
 async def create_user_email(db: AsyncSession, email: str, hashed_password: str) -> User:
-    """Crée un utilisateur email/password et le persiste (sans commit)."""
+    """Crée un utilisateur email/password de façon atomique.
+
+    Lève EmailAlreadyRegisteredError si l'email est déjà enregistré (race-safe :
+    s'appuie sur la contrainte UNIQUE de la colonne email — voir models.py:11).
+    Le db.rollback() est obligatoire après IntegrityError pour remettre la session
+    dans un état utilisable.
+    """
     user = User(
         email=email,
         hashed_password=hashed_password,
@@ -28,7 +35,11 @@ async def create_user_email(db: AsyncSession, email: str, hashed_password: str) 
         oauth_id=None,
     )
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as e:
+        await db.rollback()
+        raise EmailAlreadyRegisteredError(email) from e
     return user
 
 

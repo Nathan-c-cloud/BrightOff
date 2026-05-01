@@ -74,15 +74,14 @@ async def register(
     payload: UserRegisterRequest,
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> TokenResponse:
-    existing_user = await service.get_user_by_email(db, payload.email)
-    if existing_user is not None:
+    hashed_password = password.hash_password(payload.password)
+    try:
+        user = await service.create_user_email(db, payload.email, hashed_password)
+    except EmailAlreadyRegisteredError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered",
-        )
-
-    hashed_password = password.hash_password(payload.password)
-    user = await service.create_user_email(db, payload.email, hashed_password)
+        ) from None
 
     access_token = jwt.create_access_token({"sub": user.email})
     refresh_token = jwt.create_refresh_token({"sub": user.email})
