@@ -44,14 +44,14 @@ export default async function DashboardPage() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
-      style={{ backgroundColor: "var(--brightoff-bg)" }}
+      style={{ backgroundColor: "var(--color-bg)" }}
     >
       {/* En-tête de marque */}
       <div className="mb-8 text-center">
         <span
           className="text-3xl font-bold tracking-tight"
           style={{
-            background: "var(--brightoff-gradient)",
+            background: "var(--gradient-brand)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
         >
           BrightOff
         </span>
-        <p className="mt-1 text-sm" style={{ color: "var(--brightoff-text-secondary)" }}>
+        <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
           Trouve l&apos;offre qui te correspond vraiment
         </p>
       </div>
@@ -68,8 +68,8 @@ export default async function DashboardPage() {
       <div
         className="w-full max-w-md rounded-2xl p-8"
         style={{
-          backgroundColor: "var(--brightoff-bg-secondary)",
-          border: "1px solid var(--brightoff-border)",
+          backgroundColor: "var(--color-bg-card)",
+          border: "1px solid var(--color-border)",
           boxShadow:
             "0 4px 6px -1px rgba(43, 58, 74, 0.08), 0 2px 4px -1px rgba(43, 58, 74, 0.04)",
         }}
@@ -77,13 +77,13 @@ export default async function DashboardPage() {
         {/* Message de bienvenue */}
         <h1
           className="text-2xl font-semibold text-center mb-2"
-          style={{ color: "var(--brightoff-text)" }}
+          style={{ color: "var(--color-text)" }}
         >
           Bonjour
         </h1>
         <p
           className="text-center text-sm font-medium mb-8 truncate"
-          style={{ color: "var(--brightoff-coral)" }}
+          style={{ color: "var(--color-accent)" }}
           title={userEmail}
         >
           {userEmail}
@@ -93,9 +93,9 @@ export default async function DashboardPage() {
         <div
           className="rounded-xl px-5 py-4 mb-8 text-sm text-center"
           style={{
-            backgroundColor: "var(--brightoff-hover-light)",
-            border: "1px solid var(--brightoff-border)",
-            color: "var(--brightoff-text-secondary)",
+            backgroundColor: "var(--color-hover-light)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-secondary)",
           }}
         >
           Le contenu réel du dashboard sera disponible au Sprint 5.
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Pied de page */}
-      <p className="mt-6 text-xs" style={{ color: "var(--brightoff-text-secondary)" }}>
+      <p className="mt-6 text-xs" style={{ color: "var(--color-text-secondary)" }}>
         &copy; {new Date().getFullYear()} BrightOff. Tous droits réservés.
       </p>
     </div>

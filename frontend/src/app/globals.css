@@ -1,49 +1,248 @@
 @import "tailwindcss";
 
+/* ======================================================
+   DESIGN TOKENS — BrightOff
+   Source de vérité : docs/charte-couleurs.md
+   Maquette de référence : assets/maquettes/brightoff-claude-design/styles.css
+   ====================================================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* --- Couleurs principales --- */
+  --color-primary: #7AC7E6;          /* Bleu ciel lumineux — navigation, liens */
+  --color-primary-light: #E6F7FD;    /* Bleu glacé — fond de cartes (charte: --color-primary-light) */
 
-  /* ---- Palette BrightOff (charte-couleurs.md) ---- */
-  /* Principales */
-  --brightoff-sky: #7AC7E6;         /* Bleu ciel lumineux — navigation, liens */
-  --brightoff-sky-light: #E6F7FD;   /* Bleu glacé — fond de cartes */
-  --brightoff-coral: #FF705A;       /* Corail vif — boutons CTA, accents */
-  --brightoff-peach: #FFC2AC;       /* Pêche — hover boutons corail, highlights */
-  /* Sémantiques */
-  --brightoff-success: #ADF7B6;     /* Menthe — compétences acquises */
-  --brightoff-warning: #FFB088;     /* Pêche foncé — scores moyens */
-  --brightoff-error: #E8503A;       /* Corail foncé — erreurs */
-  --brightoff-info: #5BB8DB;        /* Bleu ciel moyen — hover liens */
-  /* Neutres */
-  --brightoff-bg: #FFF7F1;          /* Crème chaud — fond de page */
-  --brightoff-bg-secondary: #FFFFFF; /* Blanc — fond cartes, modals */
-  --brightoff-text: #2B3A4A;        /* Bleu-gris foncé — texte principal */
-  --brightoff-text-secondary: #6B7F94; /* Gris moyen — labels, descriptions */
-  --brightoff-border: #D4E3ED;      /* Gris clair bleuté — bordures, inputs */
-  /* Dérivés d'usage courant (non dans la charte, mais présents dans l'UI) */
-  --brightoff-error-bg: #FFF0EE;    /* Fond zone d'erreur (alert) */
-  --brightoff-hover-light: #F5FAFE; /* Hover bouton secondaire / Google */
-  /* Dégradé de marque */
-  --brightoff-gradient: linear-gradient(90deg, #7AC7E6, #FF705A);
+  /* --- Accent --- */
+  --color-accent: #FF705A;           /* Corail vif — boutons CTA, accents */
+  --color-accent-soft: #FFC2AC;      /* Pêche — hover boutons corail, highlights */
+  --color-accent-strong: #E8503A;    /* Corail foncé — même valeur que --color-error */
+
+  /* --- Sémantiques --- */
+  --color-success: #ADF7B6;          /* Menthe — compétences acquises, match élevé */
+  --color-warning: #FFB088;          /* Pêche foncé — scores moyens */
+  --color-error: #E8503A;            /* Corail foncé — erreurs, must-have manquants */
+  --color-info: #5BB8DB;             /* Bleu ciel moyen — hover liens, tooltips */
+
+  /* --- Neutres --- */
+  --color-bg: #FFF7F1;               /* Crème chaud — fond de page général */
+  --color-bg-card: #FFFFFF;          /* Blanc — fond cartes, modals */
+  --color-text: #2B3A4A;             /* Bleu-gris foncé — corps de texte */
+  --color-text-secondary: #6B7F94;   /* Gris moyen — labels, descriptions */
+  --color-border: #D4E3ED;           /* Gris clair bleuté — bordures, inputs */
+
+  /* --- Tokens dérivés (non dans la charte, présents dans l'UI) --- */
+  --color-error-bg: #FFF0EE;         /* Fond zone d'erreur (alerte) */
+  --color-hover-light: #F5FAFE;      /* Hover bouton secondaire / Google */
+
+  /* --- Couleurs de texte sur fonds colorés (WCAG AA) --- */
+  --color-text-placeholder: #9aafc1;     /* Texte placeholder dans les inputs */
+  --color-primary-text: #2680a0;         /* Texte sur fond --color-primary-light (badge-skill) */
+  --color-success-text: #1f5c2a;         /* Texte sur fond --color-success (badge-mint) */
+  --color-warning-text: #6b3a26;         /* Texte sur fond --color-warning (badge-peach-dark) */
+  --color-accent-soft-text: #5a2a1d;     /* Texte sur fond --color-accent-soft (encarts reco) */
+
+  /* --- Ombres --- */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 6px 18px rgba(0, 0, 0, 0.10);
+
+  /* --- Rayons --- */
+  --radius-card: 8px;
+  --radius-btn: 6px;
+  --radius-badge: 20px;
+
+  /* --- Dégradé de marque --- */
+  --gradient-brand: linear-gradient(95deg, var(--color-primary) 0%, var(--color-accent) 100%);
 }
 
+/* ======================================================
+   TAILWIND v4 — @theme inline
+   Expose les tokens CSS comme classes utilitaires Tailwind
+   bg-primary, text-accent, border-border, etc.
+   ====================================================== */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Couleurs */
+  --color-primary: var(--color-primary);
+  --color-primary-light: var(--color-primary-light);
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+  --color-bg: var(--color-bg);
+  --color-bg-card: var(--color-bg-card);
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-border: var(--color-border);
+  --color-error-bg: var(--color-error-bg);
+  --color-hover-light: var(--color-hover-light);
+  --color-text-placeholder: var(--color-text-placeholder);
+  --color-primary-text: var(--color-primary-text);
+  --color-success-text: var(--color-success-text);
+  --color-warning-text: var(--color-warning-text);
+  --color-accent-soft-text: var(--color-accent-soft-text);
+
+  /* Police */
+  --font-sans: var(--font-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ======================================================
+   BASE
+   ====================================================== */
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ======================================================
+   COMPOSANTS RÉUTILISABLES
+   Portés depuis assets/maquettes/brightoff-claude-design/styles.css
+   Règle : toutes les valeurs hex remplacées par var(--color-*)
+   Ne pas porter ici : .dropzone, .nav-app, .score-bar, .welcome
+   (→ composants React S3-02/S3-03)
+   ====================================================== */
+@layer components {
+
+  /* --- Boutons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2;
+    padding: 12px 22px;
+    border-radius: var(--radius-btn);
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+
+  .btn-coral {
+    background: var(--color-accent);
+    color: white;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 4px 12px rgba(255, 112, 90, 0.25);
+  }
+  .btn-coral:hover {
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+    transform: translateY(-1px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 6px 16px rgba(255, 194, 172, 0.5);
+  }
+
+  .btn-sky-outline {
+    background: var(--color-bg-card);
+    color: var(--color-primary);
+    border: 1.5px solid var(--color-primary);
+  }
+  .btn-sky-outline:hover {
+    background: var(--color-primary-light);
+  }
+
+  .btn-ghost {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+  .btn-ghost:hover {
+    color: var(--color-primary);
+  }
+
+  .btn-lg {
+    padding: 15px 28px;
+    font-size: 16px;
+  }
+
+  /* --- Carte --- */
+  .card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* --- Input et champ formulaire --- */
+  .input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-btn);
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(122, 199, 230, 0.18);
+  }
+  .input::placeholder {
+    color: var(--color-text-placeholder);
+  }
+
+  label.field {
+    display: block;
+    margin-bottom: 14px;
+  }
+  label.field > span {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 6px;
+  }
+
+  /* --- Badges --- */
+  .badge {
+    @apply inline-flex items-center;
+    padding: 6px 12px;
+    border-radius: var(--radius-badge);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  /* Compétence acquise — bleu ciel */
+  .badge-skill {
+    background: var(--color-primary-light);
+    color: var(--color-primary-text);
+  }
+
+  /* Succès — menthe */
+  .badge-mint {
+    background: var(--color-success);
+    color: var(--color-success-text);
+  }
+
+  /* Erreur / must-have manquant — corail foncé */
+  .badge-coral-dark {
+    background: var(--color-accent-strong);
+    color: white;
+  }
+
+  /* Avertissement / nice-to-have — pêche foncé */
+  .badge-peach-dark {
+    background: var(--color-warning);
+    color: var(--color-warning-text);
+  }
+
 }

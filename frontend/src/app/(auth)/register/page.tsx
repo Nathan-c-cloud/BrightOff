@@ -120,7 +120,7 @@ export default function RegisterPage() {
     <>
       <h1
         className="text-2xl font-semibold text-center mb-6"
-        style={{ color: "var(--brightoff-text)" }}
+        style={{ color: "var(--color-text)" }}
       >
         Créer un compte
       </h1>
@@ -131,9 +131,9 @@ export default function RegisterPage() {
           role="alert"
           className="mb-4 px-4 py-3 rounded-lg text-sm"
           style={{
-            backgroundColor: "var(--brightoff-error-bg)",
-            border: "1px solid var(--brightoff-error)",
-            color: "var(--brightoff-error)",
+            backgroundColor: "var(--color-error-bg)",
+            border: "1px solid var(--color-error)",
+            color: "var(--color-error)",
           }}
         >
           {errorMessage}
@@ -146,7 +146,7 @@ export default function RegisterPage() {
           <label
             htmlFor="email"
             className="block text-sm font-medium mb-1"
-            style={{ color: "var(--brightoff-text)" }}
+            style={{ color: "var(--color-text)" }}
           >
             Email
           </label>
@@ -160,17 +160,17 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
             style={{
-              border: "1px solid var(--brightoff-border)",
-              color: "var(--brightoff-text)",
-              backgroundColor: "var(--brightoff-bg-secondary)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text)",
+              backgroundColor: "var(--color-bg-card)",
             }}
             onFocus={(e) => {
               e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--brightoff-sky)";
+              e.currentTarget.style.borderColor = "var(--color-primary)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--brightoff-border)";
+              e.currentTarget.style.borderColor = "var(--color-border)";
             }}
             placeholder="vous@exemple.fr"
           />
@@ -180,7 +180,7 @@ export default function RegisterPage() {
           <label
             htmlFor="password"
             className="block text-sm font-medium mb-1"
-            style={{ color: "var(--brightoff-text)" }}
+            style={{ color: "var(--color-text)" }}
           >
             Mot de passe
           </label>
@@ -195,17 +195,17 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
             style={{
-              border: "1px solid var(--brightoff-border)",
-              color: "var(--brightoff-text)",
-              backgroundColor: "var(--brightoff-bg-secondary)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text)",
+              backgroundColor: "var(--color-bg-card)",
             }}
             onFocus={(e) => {
               e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--brightoff-sky)";
+              e.currentTarget.style.borderColor = "var(--color-primary)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--brightoff-border)";
+              e.currentTarget.style.borderColor = "var(--color-border)";
             }}
             placeholder="8 caractères minimum"
           />
@@ -215,7 +215,7 @@ export default function RegisterPage() {
           <label
             htmlFor="confirmPassword"
             className="block text-sm font-medium mb-1"
-            style={{ color: "var(--brightoff-text)" }}
+            style={{ color: "var(--color-text)" }}
           >
             Confirmer le mot de passe
           </label>
@@ -229,17 +229,17 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-shadow"
             style={{
-              border: "1px solid var(--brightoff-border)",
-              color: "var(--brightoff-text)",
-              backgroundColor: "var(--brightoff-bg-secondary)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text)",
+              backgroundColor: "var(--color-bg-card)",
             }}
             onFocus={(e) => {
               e.currentTarget.style.boxShadow = "0 0 0 3px rgba(122, 199, 230, 0.3)";
-              e.currentTarget.style.borderColor = "var(--brightoff-sky)";
+              e.currentTarget.style.borderColor = "var(--color-primary)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--brightoff-border)";
+              e.currentTarget.style.borderColor = "var(--color-border)";
             }}
             placeholder="Répétez votre mot de passe"
           />
@@ -250,12 +250,12 @@ export default function RegisterPage() {
           type="submit"
           disabled={isLoading}
           className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-white transition-opacity"
-          style={{ backgroundColor: "var(--brightoff-coral)" }}
+          style={{ backgroundColor: "var(--color-accent)" }}
           onMouseEnter={(e) => {
-            if (!isLoading) e.currentTarget.style.backgroundColor = "var(--brightoff-peach)";
+            if (!isLoading) e.currentTarget.style.backgroundColor = "var(--color-accent-soft)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--brightoff-coral)";
+            e.currentTarget.style.backgroundColor = "var(--color-accent)";
           }}
         >
           {isLoading ? "Création du compte…" : "S'inscrire"}
@@ -264,11 +264,11 @@ export default function RegisterPage() {
 
       {/* Séparateur */}
       <div className="flex items-center my-5">
-        <div className="flex-1 h-px" style={{ backgroundColor: "var(--brightoff-border)" }} />
-        <span className="mx-3 text-xs" style={{ color: "var(--brightoff-text-secondary)" }}>
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+        <span className="mx-3 text-xs" style={{ color: "var(--color-text-secondary)" }}>
           ou
         </span>
-        <div className="flex-1 h-px" style={{ backgroundColor: "var(--brightoff-border)" }} />
+        <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
       </div>
 
       {/* Bouton Google — secondaire */}
@@ -278,15 +278,15 @@ export default function RegisterPage() {
         disabled={isLoading}
         className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors"
         style={{
-          border: "1px solid var(--brightoff-border)",
-          color: "var(--brightoff-text)",
-          backgroundColor: "var(--brightoff-bg-secondary)",
+          border: "1px solid var(--color-border)",
+          color: "var(--color-text)",
+          backgroundColor: "var(--color-bg-card)",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--brightoff-hover-light)";
+          e.currentTarget.style.backgroundColor = "var(--color-hover-light)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--brightoff-bg-secondary)";
+          e.currentTarget.style.backgroundColor = "var(--color-bg-card)";
         }}
       >
         <GoogleIcon />
@@ -294,17 +294,17 @@ export default function RegisterPage() {
       </button>
 
       {/* Lien vers connexion */}
-      <p className="mt-6 text-center text-sm" style={{ color: "var(--brightoff-text-secondary)" }}>
+      <p className="mt-6 text-center text-sm" style={{ color: "var(--color-text-secondary)" }}>
         Déjà un compte ?{" "}
         <Link
           href="/login"
           className="font-medium"
-          style={{ color: "var(--brightoff-sky)" }}
+          style={{ color: "var(--color-primary)" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "var(--brightoff-info)";
+            e.currentTarget.style.color = "var(--color-info)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--brightoff-sky)";
+            e.currentTarget.style.color = "var(--color-primary)";
           }}
         >
           Se connecter
