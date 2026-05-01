@@ -68,22 +68,35 @@ TEST_JWT_SECRET = "integration-test-secret-key-do-not-use-in-prod"
 
 
 # ---------------------------------------------------------------------------
-# Fixture : JWT secret (scope=session)
+# Fixture : JWT secret + ENVIRONMENT (scope=session)
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session", autouse=True)
-def patch_jwt_secret_for_integration():
-    """Force une clé JWT déterministe pour toute la session de tests d'intégration.
+def patch_settings_for_integration():
+    """Force des valeurs déterministes sur l'instance settings pour les tests d'intégration.
 
-    JWT_SECRET_KEY est un champ Pydantic Settings requis sans valeur par défaut.
-    Cette fixture garantit que les tests s'exécutent sans variable d'env réelle,
-    et que les tokens générés pendant les tests sont décodables de façon cohérente.
+    Deux champs sont patchés :
+    - JWT_SECRET_KEY : champ requis sans valeur par défaut — garantit la cohérence
+      des tokens générés et vérifiés au sein de la session de tests.
+    - ENVIRONMENT : forcé à "dev" pour que le validateur _enforce_prod_safety ne bloque
+      pas le démarrage quand DEBUG=true est défini dans le .env local sans ENVIRONMENT.
+      Sans ce patch, un .env avec DEBUG=true + ENVIRONMENT absent (défaut "prod")
+      lèverait une ValidationError à l'import de app.core.config.
+
+    Note : settings est un singleton instancié au niveau module — ces mutations
+    directes sont le seul moyen de l'influencer après l'import.
     """
-    original = settings.JWT_SECRET_KEY
+    original_jwt = settings.JWT_SECRET_KEY
+    original_env = settings.ENVIRONMENT
+
     settings.JWT_SECRET_KEY = TEST_JWT_SECRET
+    settings.ENVIRONMENT = "dev"
+
     yield
-    settings.JWT_SECRET_KEY = original
+
+    settings.JWT_SECRET_KEY = original_jwt
+    settings.ENVIRONMENT = original_env
 
 
 # ---------------------------------------------------------------------------
