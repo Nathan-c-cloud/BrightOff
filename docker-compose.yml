@@ -34,6 +34,7 @@ services:
       AWS_REGION: ${AWS_REGION:-eu-west-3}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-brightoff-dev-cvs}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-local}
     ports:
       - "8000:8000"
