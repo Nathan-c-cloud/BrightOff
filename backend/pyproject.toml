@@ -29,6 +29,9 @@ ignore = []
 # Le system prompt LLM et les tableaux Markdown dans le rapport contiennent des lignes
 # intentionnellement longues pour la lisibilité — E501 non pertinent ici.
 "scripts/benchmark_claude_cv.py" = ["E501"]
+# Le SYSTEM_PROMPT et les exemples JSON dans prompt.py sont portés verbatim depuis le benchmark
+# validé — les lignes longues sont intentionnelles et ne doivent pas être reformatées.
+"app/modules/cv_parser/prompt.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
