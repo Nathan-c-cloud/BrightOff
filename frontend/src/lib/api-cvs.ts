@@ -27,6 +27,22 @@ export interface CvStatusResponse {
   parsed_at: string | null;
 }
 
+/** Un item de la réponse de GET /api/v1/cvs (liste) */
+export interface CvListItem {
+  id: string;
+  filename: string;
+  file_format: string;
+  parsing_status: "uploading" | "parsing" | "ready" | "failed";
+  uploaded_at: string;
+  parsed_at: string | null;
+}
+
+/** Réponse de GET /api/v1/cvs */
+export interface CvListResponse {
+  items: CvListItem[];
+  total: number;
+}
+
 /**
  * Erreur typée levée par les helpers de ce module.
  *
@@ -167,6 +183,33 @@ export function uploadCv(
     xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
     xhr.send(formData);
   });
+}
+
+/**
+ * Liste les CVs de l'utilisateur via GET /api/v1/cvs.
+ *
+ * Retourne les CVs triés par date de création décroissante (plus récent en premier).
+ * Utilisé par le dashboard pour détecter un CV en cours de parsing au montage.
+ *
+ * @param accessToken Bearer token BrightOff (session.backendToken)
+ * @returns CvListResponse avec les items et le total
+ *
+ * @throws {ApiCvsError} status 401 si token invalide ou expiré
+ * @throws {ApiCvsError} status 0 + code "NETWORK_ERROR" si réseau indisponible
+ */
+export async function listMyCvs(accessToken: string): Promise<CvListResponse> {
+  try {
+    const res = await fetch(`${getApiUrl()}/api/v1/cvs`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return handleResponse<CvListResponse>(res);
+  } catch (err) {
+    if (err instanceof ApiCvsError) throw err;
+    throw new ApiCvsError("Erreur réseau", 0, "NETWORK_ERROR");
+  }
 }
 
 /**

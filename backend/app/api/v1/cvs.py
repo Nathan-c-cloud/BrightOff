@@ -200,15 +200,40 @@ async def get_cv(
     status_code=status.HTTP_200_OK,
     summary="Liste des CVs de l'utilisateur",
     description=(
-        "Liste tous les CVs uploadés par l'utilisateur courant, "
-        "triés par date de création décroissante."
+        "Liste les CVs uploadés par l'utilisateur courant, "
+        "triés par date de création décroissante (plus récent en premier). "
+        "Limité à 10 résultats. Utilisé par le dashboard pour détecter un CV "
+        "en cours de parsing et relancer le polling."
     ),
     responses={
         401: {"description": "JWT manquant, expiré ou invalide"},
     },
 )
-async def list_cvs() -> CVListResponse:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Not implemented",
+async def list_cvs(
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> CVListResponse:
+    """Liste les CVs de l'utilisateur authentifié, triés par created_at DESC."""
+    from sqlalchemy import desc
+
+    result = await db.execute(
+        select(CV)
+        .where(CV.user_id == current_user.id)
+        .order_by(desc(CV.created_at))
+        .limit(10)
     )
+    cvs = result.scalars().all()
+
+    items = [
+        CVResponse(
+            id=cv.id,
+            filename=cv.original_filename,
+            file_format=cv.file_format,
+            parsing_status=cv.parsing_status,
+            uploaded_at=cv.created_at,
+            parsed_at=cv.parsed_at,
+        )
+        for cv in cvs
+    ]
+
+    return CVListResponse(items=items, total=len(items))
