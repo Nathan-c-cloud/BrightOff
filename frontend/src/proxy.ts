@@ -27,7 +27,7 @@ import { NextResponse } from "next/server";
  * Préfixes des routes qui nécessitent une authentification valide.
  * Tout chemin commençant par l'un de ces préfixes est protégé.
  */
-const PROTECTED_PREFIXES = ["/dashboard"] as const;
+const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/profile"] as const;
 
 /**
  * Routes publiques d'authentification.
