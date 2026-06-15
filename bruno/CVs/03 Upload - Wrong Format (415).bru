@@ -1,0 +1,39 @@
+meta {
+  name: 03 Upload - Wrong Format (415)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/cvs/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:multipart-form {
+  file: @file({{cvWrongFormat}})
+}
+
+tests {
+  test("status is 415 (Unsupported Media Type)", function() {
+    expect(res.getStatus()).to.equal(415);
+  });
+  test("error message mentions PDF/DOCX", function() {
+    expect(res.body.detail.toLowerCase()).to.satisfy(s =>
+      s.includes("pdf") || s.includes("docx") || s.includes("supported")
+    );
+  });
+}
+
+docs {
+  Cas d'erreur — Fichier renommé en .pdf mais qui n'est pas un vrai PDF
+
+  Le fichier test-files/not-a-pdf.pdf contient du texte brut.
+  Les magic bytes ne correspondent pas à PDF/DOCX → 415.
+
+  Démontre que le filename ne sert PAS de source de vérité pour le format.
+}

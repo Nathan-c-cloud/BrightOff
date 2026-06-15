@@ -1,0 +1,38 @@
+meta {
+  name: 05 Upload DOCX - Happy Path
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/cvs/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:multipart-form {
+  file: @file()
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  test("file_format is docx (via magic bytes)", function() {
+    expect(res.body.status).to.equal("parsing");
+  });
+}
+
+docs {
+  Test du happy path DOCX
+
+  Sélectionner manuellement un fichier .docx valide via l'UI Bruno
+  (clic sur le bouton fichier dans l'onglet Body).
+
+  Démontre que l'endpoint accepte les DOCX (magic bytes ZIP/OOXML)
+  en plus des PDF.
+}

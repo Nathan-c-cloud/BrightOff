@@ -1,0 +1,27 @@
+meta {
+  name: 02 Upload - No Auth (401)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/cvs/upload
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  file: @file({{cvHappyPath}})
+}
+
+tests {
+  test("status is 401 (Unauthorized)", function() {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Cas d'erreur — JWT manquant
+
+  Vérifie que l'endpoint refuse l'upload sans token.
+}

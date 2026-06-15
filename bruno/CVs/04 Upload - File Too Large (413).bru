@@ -1,0 +1,43 @@
+meta {
+  name: 04 Upload - File Too Large (413)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/cvs/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:multipart-form {
+  file: @file({{cvTooLarge}})
+}
+
+tests {
+  test("status is 413 (Payload Too Large)", function() {
+    expect(res.getStatus()).to.equal(413);
+  });
+  test("error message mentions size limit", function() {
+    expect(res.body.detail.toLowerCase()).to.satisfy(s =>
+      s.includes("size") || s.includes("limit") || s.includes("mb")
+    );
+  });
+}
+
+docs {
+  Cas d'erreur — Fichier > 5 MB
+
+  PRÉREQUIS : générer le fichier big.pdf de 6 MB (non versionné dans git).
+  Depuis la racine du projet :
+
+      dd if=/dev/urandom of=bruno/test-files/big.pdf bs=1M count=6
+
+  Le fichier de 6 MB dépasse la limite de 5 MB → 413
+  La validation taille intervient AVANT la validation magic bytes,
+  donc même un fichier non-PDF rejette en 413 (pas 415) s'il est trop gros.
+}

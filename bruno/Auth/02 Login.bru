@@ -1,0 +1,43 @@
+meta {
+  name: 02 Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{email}}",
+    "password": "{{password}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.access_token) {
+    bru.setEnvVar("token", res.body.access_token);
+    bru.setEnvVar("refreshToken", res.body.refresh_token);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("returns access_token", function() {
+    expect(res.body.access_token).to.be.a("string");
+  });
+  test("returns refresh_token", function() {
+    expect(res.body.refresh_token).to.be.a("string");
+  });
+}
+
+docs {
+  Récupère un JWT pour un user déjà enregistré.
+  Le token est automatiquement sauvegardé dans la variable d'environnement {{token}}.
+  Lance cette requête en premier si tu as déjà un compte (sinon utilise 01 Register).
+}

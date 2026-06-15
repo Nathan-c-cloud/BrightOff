@@ -1,0 +1,26 @@
+meta {
+  name: 07 List CVs (stub 501)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/cvs
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("status is 501 (stub)", function() {
+    expect(res.getStatus()).to.equal(501);
+  });
+}
+
+docs {
+  STUB — Sera implémenté ultérieurement.
+  Liste tous les CVs uploadés par l'utilisateur courant.
+}

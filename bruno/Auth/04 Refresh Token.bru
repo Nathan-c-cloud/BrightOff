@@ -1,0 +1,35 @@
+meta {
+  name: 04 Refresh Token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh_token": "{{refreshToken}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.access_token) {
+    bru.setEnvVar("token", res.body.access_token);
+    bru.setEnvVar("refreshToken", res.body.refresh_token);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Renouvelle le JWT à partir du refresh_token.
+  À utiliser quand le token expire (le code expire au bout de 30 min par défaut).
+}
