@@ -518,7 +518,7 @@ export default function ProfilePage() {
       />
 
       <div className="page-wrap page-wrap--wide">
-        <h1 style={{ margin: "0 0 24px", fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em" }}>
+        <h1 className="profile-page-title">
           Mon Profil
         </h1>
 
@@ -533,17 +533,10 @@ export default function ProfilePage() {
 
           {/* Main droite */}
           <div className="profile-main">
-            <SkillsSection
-              section="hard"
-              skills={profileData.skills}
-              onAdd={handleSkillAdd}
-              onRemove={handleSkillRemove}
-            />
-            <SkillsSection
-              section="soft"
-              skills={profileData.skills}
-              onAdd={handleSkillAdd}
-              onRemove={handleSkillRemove}
+            <ExperienceSection
+              experiences={profileData.experiences}
+              onEdit={(item) => setModal({ type: "experience", mode: "edit", item })}
+              onAdd={() => setModal({ type: "experience", mode: "create" })}
             />
             <EducationSection
               educations={profileData.educations}
@@ -555,10 +548,17 @@ export default function ProfilePage() {
               onAdd={handleLanguageAdd}
               onRemove={handleLanguageRemove}
             />
-            <ExperienceSection
-              experiences={profileData.experiences}
-              onEdit={(item) => setModal({ type: "experience", mode: "edit", item })}
-              onAdd={() => setModal({ type: "experience", mode: "create" })}
+            <SkillsSection
+              section="soft"
+              skills={profileData.skills}
+              onAdd={handleSkillAdd}
+              onRemove={handleSkillRemove}
+            />
+            <SkillsSection
+              section="hard"
+              skills={profileData.skills}
+              onAdd={handleSkillAdd}
+              onRemove={handleSkillRemove}
             />
 
             {/* Bouton "Mettre a jour mon CV" en bas de main */}

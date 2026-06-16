@@ -13,6 +13,12 @@
  *   - Bouton "Mettre a jour mon CV" → router.push("/onboarding")
  *   - Bouton "Uploader mon CV" (etat 404) → router.push("/onboarding")
  *   - Modale education : ouverte par "+ Ajouter une formation", fermee apres save
+ *
+ * Ordre des sections dans profile-main (S3-16 follow-up) :
+ *   Expérience → Formation → Langues → Soft skills → Hard skills
+ * Ordre des boutons "+ Ajouter" dans le DOM :
+ *   [0] "+ Ajouter une experience" | [1] "+ Ajouter une formation" |
+ *   [2] "+ Ajouter" Langues | [3] "+ Ajouter" Soft | [4] "+ Ajouter" Hard
  *   - Modale education edit : ouverte par clic icone edit
  *
  * Mocks :
@@ -336,8 +342,9 @@ describe("ProfilePage", () => {
     });
 
     // Cliquer "+ Ajouter" dans la section hard
+    // Ordre dans le DOM : experience [0], formation [1], langues [2], soft [3], hard [4]
     const addButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
-    await user.click(addButtons[0]);
+    await user.click(addButtons[4]);
 
     const input = screen.getByPlaceholderText(/ajouter/i);
     await user.type(input, "TypeScript");
@@ -364,8 +371,9 @@ describe("ProfilePage", () => {
     });
 
     // Ajouter une skill
+    // Ordre dans le DOM : experience [0], formation [1], langues [2], soft [3], hard [4]
     const addButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
-    await user.click(addButtons[0]);
+    await user.click(addButtons[4]);
     const input = screen.getByPlaceholderText(/ajouter/i);
     await user.type(input, "Vue");
     await user.keyboard("{Enter}");
@@ -402,9 +410,9 @@ describe("ProfilePage", () => {
     });
 
     // Cliquer "+ Ajouter" dans la section Langues
-    // Ordre dans le DOM : hard [0], soft [1], education [2], languages [3], experience [4]
+    // Ordre dans le DOM : experience [0], formation [1], langues [2], soft [3], hard [4]
     const allAddButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
-    await user.click(allAddButtons[3]);
+    await user.click(allAddButtons[2]);
 
     const input = screen.getByPlaceholderText(/langue/i);
     await user.type(input, "Japonais");
@@ -430,9 +438,9 @@ describe("ProfilePage", () => {
       expect(screen.getByRole("heading", { name: "Langues" })).toBeInTheDocument();
     });
 
-    // Ordre dans le DOM : hard [0], soft [1], education [2], languages [3], experience [4]
+    // Ordre dans le DOM : experience [0], formation [1], langues [2], soft [3], hard [4]
     const allAddButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
-    await user.click(allAddButtons[3]);
+    await user.click(allAddButtons[2]);
 
     const input = screen.getByPlaceholderText(/langue/i);
     await user.type(input, "Arabe");
