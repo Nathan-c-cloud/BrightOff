@@ -50,19 +50,25 @@ export function Toast({
   onClick,
   onClose,
 }: ToastProps) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref pour éviter que la référence instable de onClose (inline depuis le parent)
+  // ne resette le timer à chaque re-render du parent.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (duration <= 0) return;
 
-    timerRef.current = setTimeout(() => {
-      onClose();
+    const timer = setTimeout(() => {
+      onCloseRef.current();
     }, duration);
 
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [duration, onClose]);
+    return () => clearTimeout(timer);
+    // onClose est intentionnellement absent des deps : on utilise onCloseRef
+    // pour éviter les resets de timer causés par les références inline instables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration]);
 
   const isSuccess = variant === "success";
 
