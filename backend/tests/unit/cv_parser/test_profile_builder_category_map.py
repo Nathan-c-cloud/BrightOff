@@ -61,6 +61,28 @@ class TestNormalizeCategoryPassthrough:
 class TestNormalizeCategoryFallback:
     """Les valeurs inconnues tombent sur le fallback conservateur."""
 
-    @pytest.mark.parametrize("unknown", ["", "unknown", "TECH", "Tech", None])
+    @pytest.mark.parametrize("unknown", ["", "unknown", None])
     def test_unknown_value_falls_back_to_default(self, unknown):
         assert _normalize_category(unknown) == _DEFAULT_SKILL_CATEGORY
+
+
+class TestNormalizeCategoryCaseInsensitive:
+    """La normalisation est insensible à la casse — Claude peut produire des variantes."""
+
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            ("Tech", "technique"),
+            ("TECH", "technique"),
+            ("Soft_Skill", "soft_skill"),
+            ("SOFT_SKILL", "soft_skill"),
+            ("Outil", "outil"),
+            ("OUTIL", "outil"),
+            ("Soft", "soft_skill"),
+            ("SOFT", "soft_skill"),
+            ("Tool", "outil"),
+            ("TOOL", "outil"),
+        ],
+    )
+    def test_mixed_case_resolves_correctly(self, raw, expected):
+        assert _normalize_category(raw) == expected

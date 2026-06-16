@@ -45,8 +45,10 @@ _DEFAULT_SKILL_CATEGORY = "technique"  # fallback ultime pour toute valeur incon
 
 def _normalize_category(raw: str | None) -> str:
     """Normalise la catégorie de skill produite par Claude vers le Literal DB/API."""
-    normalized = _SKILL_CATEGORY_MAP.get(raw or "", _DEFAULT_SKILL_CATEGORY)
-    if normalized == _DEFAULT_SKILL_CATEGORY and raw not in _SKILL_CATEGORY_MAP:
+    # Normalise la casse avant lookup : Claude peut produire "Tech" / "SOFT_SKILL" / etc.
+    key = (raw or "").lower()
+    normalized = _SKILL_CATEGORY_MAP.get(key, _DEFAULT_SKILL_CATEGORY)
+    if normalized == _DEFAULT_SKILL_CATEGORY and key not in _SKILL_CATEGORY_MAP:
         log.warning("Catégorie de skill inconnue %r — fallback sur %r", raw, _DEFAULT_SKILL_CATEGORY)
     return normalized
 
