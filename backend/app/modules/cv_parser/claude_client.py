@@ -209,3 +209,18 @@ async def parse_cv_with_claude(cv_text: str) -> dict:
         except httpx.TimeoutException as exc2:
             log.error("parse_cv_with_claude: timeout sur le retry JSON.")
             raise ClaudeTimeoutError("Timeout Claude sur le retry JSON.") from exc2
+        except anthropic.RateLimitError as exc2:
+            # 429 sur le retry JSON — pas de second retry pour éviter les boucles
+            log.error(
+                "parse_cv_with_claude: RateLimitError 429 sur le retry JSON — abandon."
+            )
+            raise ClaudeRateLimitError(
+                "Claude retourne 429 sur le retry JSON — réessayer plus tard."
+            ) from exc2
+        except anthropic.APIStatusError as exc2:
+            # Erreur 5xx sur le retry JSON — propagée telle quelle (cohérent avec le 1er appel)
+            log.error(
+                "parse_cv_with_claude: APIStatusError %s sur le retry JSON — abandon.",
+                exc2.status_code,
+            )
+            raise
