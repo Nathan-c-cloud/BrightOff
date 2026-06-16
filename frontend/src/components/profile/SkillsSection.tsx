@@ -98,8 +98,7 @@ export function SkillsSection({
         {adding ? (
           <input
             autoFocus
-            className="input"
-            style={{ width: 160, padding: "6px 10px", fontSize: 13 }}
+            className="input skill-input-inline"
             placeholder="Ajouter..."
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

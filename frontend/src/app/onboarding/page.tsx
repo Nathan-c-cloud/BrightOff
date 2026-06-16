@@ -246,7 +246,7 @@ export default function OnboardingPage() {
       <div className="page-wrap">
         <div className="mb-8">
           <h1
-            className="text-3xl font-extrabold tracking-tight mb-2"
+            className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2"
             style={{ color: "var(--color-text)" }}
           >
             Importe ton CV
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Zone centrale — 560px max pour ne pas étirer la drop zone */}
-        <div style={{ maxWidth: "560px" }}>
+        <div style={{ maxWidth: "560px", width: "100%" }}>
           {pageStatus === "parsing" || pageStatus === "ready" ? (
             renderParsingState()
           ) : (

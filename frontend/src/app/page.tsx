@@ -13,7 +13,7 @@ export default function Home() {
       <NavPublic />
 
       {/* Hero */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 48px" }}>
+      <section className="hero-section">
         <div className="hero">
           <div>
             <h1>Trouvez le job qui vous ressemble</h1>

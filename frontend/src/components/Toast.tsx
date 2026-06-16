@@ -66,11 +66,10 @@ export function Toast({
 
   const isSuccess = variant === "success";
 
+  // Le positionnement (bottom/right/left) est géré par la classe .toast-container
+  // dans globals.css pour permettre à la media query mobile de le surcharger
+  // sans !important sur des styles inline.
   const containerStyle: React.CSSProperties = {
-    position: "fixed",
-    bottom: "24px",
-    right: "24px",
-    zIndex: 9999,
     display: "flex",
     alignItems: "center",
     gap: "10px",
@@ -82,10 +81,8 @@ export function Toast({
     color: isSuccess ? "var(--color-success-text)" : "var(--color-error)",
     fontSize: "14px",
     fontWeight: 600,
-    maxWidth: "340px",
     cursor: onClick ? "pointer" : "default",
     userSelect: "none",
-    // Animation d'entrée légère
     animation: "toast-in 0.2s ease",
   };
 
@@ -121,6 +118,7 @@ export function Toast({
       <div
         role="alert"
         aria-live="polite"
+        className="toast-container"
         style={containerStyle}
         onClick={onClick}
         onKeyDown={handleKeyDown}
