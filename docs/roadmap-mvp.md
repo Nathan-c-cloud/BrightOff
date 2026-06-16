@@ -553,6 +553,87 @@ Tests à mettre à jour : composants profil renommés ou recréés → tests uni
 
 ---
 
+### S3-RESPONSIVE — Responsive des pages connectées (5 pts)
+
+**Date :** 2026-06-16
+**Priorité :** Haute
+**Dépend de :** S3-12 (livré), S3-14 (livré), S3-16 (livré)
+**Estimation :** 5 story points
+
+---
+
+**User story**
+
+En tant qu'utilisateur connecté sur mobile ou tablette,
+je veux que les pages `/login`, `/onboarding`, `/dashboard` et `/profile` s'adaptent correctement à mon écran,
+afin de pouvoir utiliser BrightOff depuis n'importe quel appareil sans que l'interface déborde ou soit inutilisable.
+
+---
+
+**Description fonctionnelle**
+
+Ce ticket rend responsive les 4 pages de l'application connectée. La spec technique complète (comportements par breakpoint, plan d'implémentation, composants à modifier) est documentée dans `docs/architecture-s3-responsive.md`.
+
+**Breakpoints retenus (paliers Tailwind standards) :**
+- Mobile : 0 — 640px (défaut, pas de préfixe)
+- Tablette : 641px — 1024px (`md:`)
+- Desktop : 1025px et + (`lg:`)
+
+**NavApp — burger menu** : les liens de navigation sont masqués en mobile (`hidden md:flex`) et remplacés par un bouton burger. Au clic, un drawer pleine hauteur s'ouvre (fond bleu ciel, sans librairie externe). La cloche de notification reste dans la barre principale à côté du burger (jamais dans le drawer). Fermeture par Escape ou clic sur l'overlay.
+
+**NavPublic** : les 2 boutons ("Connexion" + "S'inscrire") restent visibles en mobile. Seuls le padding et la taille de police sont réduits pour tenir sur l'écran.
+
+**Page `/login`** : `AuthLayout` refactoré — les styles inline (`padding`, `maxWidth`) sont remplacés par des classes CSS dans `globals.css`. La carte `.center-card` passe pleine largeur en mobile avec un padding réduit. Formulaire prénom/nom en 1 colonne (au lieu de 2) sur mobile.
+
+**Page `/onboarding`** : paddings de la dropzone réduits en mobile. Boutons d'action en bas de dropzone empilés verticalement sur mobile (côte à côte sur tablette et desktop).
+
+**Page `/dashboard`** : `CvStatusBanner` pleine largeur. Toast en coin bas-gauche avec légère extension de largeur sur mobile (cohérence avec le comportement desktop).
+
+**Page `/profile`** : le layout `profile-grid` passe en 1 colonne sous 768px (aside au-dessus, main en dessous — déjà en place dans `globals.css`). Modales `ProfileFormModal` scrollables et non débordantes sur mobile (padding horizontal réduit). Input inline ajout compétence passe en `width: 100%` sur mobile (au lieu de 140px fixe).
+
+---
+
+**Critères d'acceptation**
+
+- [ ] Tests visuels manuels sur 3 viewports (375px mobile, 768px tablette, 1280px desktop) validés sur les 4 pages : `/login`, `/onboarding`, `/dashboard`, `/profile`
+- [ ] NavApp : burger menu visible en mobile, liens de navigation masqués (`hidden md:flex`), drawer fond bleu ciel s'ouvre et se ferme correctement
+- [ ] NavApp drawer : Escape ferme le drawer, clic sur l'overlay ferme le drawer, focus revient au bouton burger à la fermeture
+- [ ] NavApp mobile : cloche de notification visible dans la barre principale (à côté du burger), jamais dans le drawer
+- [ ] NavPublic : 2 boutons ("Connexion" + "S'inscrire") présents en mobile, padding et taille réduits, aucun débordement
+- [ ] `AuthLayout` : styles inline supprimés et remplacés par classes CSS dans `globals.css` (pas de `!important`)
+- [ ] Page `/login` : carte pleine largeur avec padding réduit sur mobile, formulaire prénom/nom en 1 colonne sur mobile
+- [ ] Page `/onboarding` : boutons d'action empilés verticalement sur mobile
+- [ ] Page `/dashboard` : toast positionné en coin bas-gauche sur mobile, légèrement élargi
+- [ ] Page `/profile` : layout 1 colonne en mobile (aside au-dessus, main en dessous), `ProfileFormModal` scrollable et non débordante, input ajout compétence `width: 100%` en mobile
+- [ ] Tous les tests existants (388 au moment du ticket) restent verts après les modifications
+
+---
+
+**Spec technique**
+
+Voir `docs/architecture-s3-responsive.md` pour le détail complet :
+- §1 : breakpoints et règle Tailwind vs CSS custom
+- §2 : comportement par page et par breakpoint (tableaux détaillés)
+- §3 : implémentation burger NavApp et NavPublic
+- §4 : quick wins déjà en place
+- §5 : plan d'implémentation en 7 étapes (étape 8 landing exclue)
+- §6 : périmètre des tests
+- §7 : risques et points d'attention (iOS Safari, `page-wrap--wide`, input inline)
+- §9 : arbitrages validés (Q1-Q7)
+
+Fichiers principaux à modifier : `globals.css`, `NavApp.tsx`, `NavPublic.tsx`, `(auth)/layout.tsx`, `onboarding/page.tsx`, `DashboardClient.tsx`.
+
+---
+
+**Hors scope (à planifier ultérieurement)**
+
+- Landing `/` → responsive prévu Sprint 7 (roadmap-mvp.md §Sprint 7)
+- Composants détail offre (`/offers/{id}`), candidatures, settings, signup form → tickets non encore créés
+- Tests visuels automatisés (Playwright `page.setViewportSize()`) → backlog post-MVP
+- Focus trap Tab cycle complet dans le drawer → backlog post-MVP
+
+---
+
 ## Mises à jour
 
 **Roadmap v2 — 2026-05-01**
