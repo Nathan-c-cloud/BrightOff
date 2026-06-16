@@ -1,20 +1,23 @@
-from datetime import datetime
+import re
+from datetime import UTC, datetime
 from uuid import UUID
 
 import google.auth.exceptions
 import google.auth.transport.requests
 import google.oauth2.id_token
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limiter import limiter
 from app.core.security import get_current_user
 from app.modules.auth import jwt, password, service
 from app.modules.auth.jwt import JWTError
 from app.modules.auth.models import User
+from app.modules.auth.refresh_token_model import RefreshToken
 from app.modules.auth.service import EmailAlreadyRegisteredError
 
 
@@ -44,6 +47,34 @@ class UserRegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=10)
 
+    @field_validator("password")
+    @classmethod
+    def password_complexity(cls, v: str) -> str:
+        """Valide la complexité du mot de passe.
+
+        Règles (compromis UX / sécurité — pas de symbole obligatoire) :
+        - Au moins 10 caractères (géré par Field.min_length avant ce validator)
+        - Au moins 1 lettre majuscule
+        - Au moins 1 lettre minuscule
+        - Au moins 1 chiffre
+        """
+        if not re.search(r"[A-Z]", v):
+            raise ValueError(
+                "Le mot de passe doit contenir au moins 10 caractères, "
+                "dont 1 majuscule, 1 minuscule et 1 chiffre."
+            )
+        if not re.search(r"[a-z]", v):
+            raise ValueError(
+                "Le mot de passe doit contenir au moins 10 caractères, "
+                "dont 1 majuscule, 1 minuscule et 1 chiffre."
+            )
+        if not re.search(r"\d", v):
+            raise ValueError(
+                "Le mot de passe doit contenir au moins 10 caractères, "
+                "dont 1 majuscule, 1 minuscule et 1 chiffre."
+            )
+        return v
+
 
 class UserLoginRequest(BaseModel):
     email: EmailStr
@@ -68,6 +99,39 @@ class UserMeResponse(BaseModel):
     created_at: datetime
 
 
+class LogoutRequest(BaseModel):
+    refresh_token: str
+
+
+# ---------- Helpers internes ----------
+
+
+async def _emit_token_pair(
+    db: AsyncSession,
+    user: User,
+) -> TokenResponse:
+    """Émet une paire access + refresh token et persiste le refresh en base.
+
+    Centralise la logique d'émission pour éviter la duplication entre
+    /register, /login, /google et /refresh.
+    """
+    access_token = jwt.create_access_token({"sub": user.email})
+    refresh_token_str, jti, expires_at = jwt.create_refresh_token({"sub": user.email})
+
+    await service.store_refresh_token(
+        db=db,
+        jti=jti,
+        user_id=user.id,
+        expires_at=expires_at,
+    )
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token_str,
+        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+
 # ---------- Routes ----------
 
 
@@ -82,10 +146,13 @@ class UserMeResponse(BaseModel):
     ),
     responses={
         409: {"description": "Un compte avec cet email existe déjà"},
-        422: {"description": "Données invalides (email mal formé, mot de passe trop court)"},
+        422: {"description": "Données invalides (email mal formé, mot de passe trop court ou trop simple)"},
+        429: {"description": "Trop de tentatives — réessayez dans 1 minute"},
     },
 )
+@limiter.limit("3/minute")
 async def register(
+    request: Request,
     payload: UserRegisterRequest,
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> TokenResponse:
@@ -98,14 +165,7 @@ async def register(
             detail="Email already registered",
         ) from None
 
-    access_token = jwt.create_access_token({"sub": user.email})
-    refresh_token = jwt.create_refresh_token({"sub": user.email})
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
+    return await _emit_token_pair(db, user)
 
 
 @router.post(
@@ -118,9 +178,12 @@ async def register(
     ),
     responses={
         401: {"description": "Email ou mot de passe invalide"},
+        429: {"description": "Trop de tentatives — réessayez dans 1 minute"},
     },
 )
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     payload: UserLoginRequest,
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> TokenResponse:
@@ -146,14 +209,7 @@ async def login(
             detail="Account disabled",
         )
 
-    access_token = jwt.create_access_token({"sub": user.email})
-    refresh_token = jwt.create_refresh_token({"sub": user.email})
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
+    return await _emit_token_pair(db, user)
 
 
 @router.post(
@@ -208,14 +264,7 @@ async def google_auth(
             detail="An account with this email already exists. Please sign in with your password.",
         ) from None
 
-    access_token = jwt.create_access_token({"sub": user.email})
-    refresh_token = jwt.create_refresh_token({"sub": user.email})
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
+    return await _emit_token_pair(db, user)
 
 
 @router.post(
@@ -225,14 +274,18 @@ async def google_auth(
     summary="Renouveler le JWT",
     description=(
         "Renouvelle la paire de tokens à partir d'un refresh token valide. "
+        "Rotation effective : l'ancien refresh token est immédiatement invalidé. "
         "Fournir le refresh token (et non l'access token) dans le header Authorization: Bearer."
     ),
     responses={
-        401: {"description": "Refresh token manquant, expiré ou invalide"},
+        401: {"description": "Refresh token manquant, expiré, révoqué ou invalide"},
         403: {"description": "Header Authorization absent (Bearer requis)"},
+        429: {"description": "Trop de tentatives — réessayez dans 1 minute"},
     },
 )
+@limiter.limit("20/minute")
 async def refresh_token(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> TokenResponse:
@@ -251,7 +304,26 @@ async def refresh_token(
         raise _invalid
 
     sub: str | None = payload.get("sub")
-    if sub is None:
+    jti_str: str | None = payload.get("jti")
+    if sub is None or jti_str is None:
+        raise _invalid
+
+    # Vérification en base : le token doit exister, ne pas être révoqué, et ne pas être expiré.
+    # L'expiration JWT est déjà vérifiée par decode_token() (claim "exp"),
+    # mais on vérifie aussi expires_at en base pour couvrir l'edge case d'une
+    # horloge serveur déphasée ou d'un token généré avant une migration.
+    try:
+        jti = UUID(jti_str)
+    except ValueError:
+        raise _invalid from None
+
+    stored: RefreshToken | None = await service.get_refresh_token(db, jti)
+    if stored is None or stored.revoked:
+        raise _invalid
+    # stored.expires_at est timezone-aware (DateTime(timezone=True) → asyncpg renvoie UTC).
+    # On normalise en UTC pour garantir la comparaison même si le tzinfo diffère.
+    expires_at_utc = stored.expires_at.astimezone(UTC)
+    if expires_at_utc < datetime.now(UTC):
         raise _invalid
 
     # Vérifier que l'utilisateur existe encore et est actif : un compte désactivé
@@ -266,19 +338,46 @@ async def refresh_token(
             detail="Account disabled",
         )
 
-    access_token = jwt.create_access_token({"sub": sub})
-    # Note : ceci n'est PAS une rotation effective. Sans stockage côté serveur
-    # (jti persisté + invalidation atomique), l'ancien refresh token reste
-    # valide jusqu'à expiration. Émettre un nouveau token côté client est
-    # simplement une bonne pratique côté UX. La rotation effective est listée
-    # en dette technique (voir docs/dette-technique-sprint-2.md, H-005).
-    new_refresh_token = jwt.create_refresh_token({"sub": sub})
+    # Rotation atomique : révoquer l'ancien token AVANT d'émettre le nouveau.
+    # Si la transaction est annulée (exception après ce point), l'ancien token
+    # reste valide — comportement sûr (pas de token perdu pour l'utilisateur).
+    await service.revoke_refresh_token(db, jti)
 
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=new_refresh_token,
-        expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
+    return await _emit_token_pair(db, user)
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Déconnexion — invalider le refresh token",
+    description=(
+        "Révoque le refresh token fourni en body. "
+        "L'access token existant reste valide jusqu'à son expiration naturelle (15 min). "
+        "Le client doit supprimer les deux tokens de son stockage local."
+    ),
+    responses={
+        400: {"description": "Refresh token manquant ou malformé"},
+        204: {"description": "Déconnexion réussie"},
+    },
+)
+async def logout(
+    payload: LogoutRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> None:
+    # Décoder silencieusement : un token expiré ou malformé ne doit pas faire
+    # échouer le logout — l'objectif est simplement de marquer le jti comme révoqué
+    # s'il existe. On retourne toujours 204 pour éviter les fuites d'information.
+    try:
+        decoded = jwt.decode_token(payload.refresh_token)
+        jti_str: str | None = decoded.get("jti")
+        if jti_str and decoded.get("type") == "refresh":
+            jti = UUID(jti_str)
+            stored = await service.get_refresh_token(db, jti)
+            if stored and not stored.revoked:
+                await service.revoke_refresh_token(db, jti)
+    except (JWTError, ValueError):
+        # Token invalide ou expiré : rien à révoquer, on retourne 204 quand même.
+        pass
 
 
 @router.get(

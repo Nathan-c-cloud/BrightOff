@@ -167,24 +167,43 @@ class TestCreateAccessToken:
 class TestCreateRefreshToken:
     def test_create_refresh_token_contains_type_refresh(self):
         """Le claim 'type' doit valoir 'refresh' pour distinguer ce token d'un access token."""
-        token = create_refresh_token(data={"sub": "user@example.com"})
+        token, jti, expires_at = create_refresh_token(data={"sub": "user@example.com"})
         payload = decode_token(token)
 
         assert payload["type"] == "refresh"
 
     def test_create_refresh_token_contains_sub(self):
         """Le payload du refresh token doit contenir le claim 'sub'."""
-        token = create_refresh_token(data={"sub": "user@example.com"})
+        token, jti, expires_at = create_refresh_token(data={"sub": "user@example.com"})
         payload = decode_token(token)
 
         assert payload["sub"] == "user@example.com"
 
-    def test_create_refresh_token_returns_string(self):
-        """create_refresh_token doit retourner une chaîne non vide."""
-        token = create_refresh_token(data={"sub": "user@example.com"})
+    def test_create_refresh_token_contains_jti(self):
+        """Le payload du refresh token doit contenir le claim 'jti' pour la rotation effective."""
+        from uuid import UUID
 
+        token, jti, expires_at = create_refresh_token(data={"sub": "user@example.com"})
+        payload = decode_token(token)
+
+        assert "jti" in payload
+        # jti dans le payload est encodé en str, mais doit correspondre au UUID retourné
+        assert str(jti) == payload["jti"]
+
+    def test_create_refresh_token_returns_tuple(self):
+        """create_refresh_token doit retourner un tuple (str, UUID, datetime)."""
+        from datetime import datetime
+        from uuid import UUID
+
+        result = create_refresh_token(data={"sub": "user@example.com"})
+
+        assert isinstance(result, tuple)
+        assert len(result) == 3
+        token, jti, expires_at = result
         assert isinstance(token, str)
         assert len(token) > 0
+        assert isinstance(jti, UUID)
+        assert isinstance(expires_at, datetime)
 
 
 class TestDecodeToken:

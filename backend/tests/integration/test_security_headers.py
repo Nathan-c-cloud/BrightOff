@@ -170,7 +170,7 @@ class TestCacheControlAuth:
         """
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": "cachetest@example.com", "password": "validpassword"},
+            json={"email": "cachetest@example.com", "password": "Validpass1"},
         )
 
         assert response.status_code == 201

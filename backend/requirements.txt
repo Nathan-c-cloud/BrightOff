@@ -16,6 +16,7 @@ python-jose[cryptography]==3.5.0
 bcrypt>=5.0.0,<6.0.0
 google-auth==2.49.2
 requests==2.32.3
+slowapi==0.1.9
 
 # cv parsing (benchmark + prod S3-11)
 pdfplumber==0.11.9

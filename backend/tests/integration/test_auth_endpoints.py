@@ -24,6 +24,10 @@ from app.modules.auth.models import User
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Mot de passe valide conforme à la politique de complexité (Fix 5) :
+# >= 10 caractères, 1 majuscule, 1 minuscule, 1 chiffre.
+VALID_PASSWORD = "Securepass1"
+
 
 def _auth_headers(token: str) -> dict:
     """Construit le header Authorization Bearer pour un token donné."""
@@ -50,7 +54,7 @@ class TestRegister:
         """Une inscription valide doit retourner 201 avec un TokenResponse complet."""
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": "newuser@example.com", "password": "securepass"},
+            json={"email": "newuser@example.com", "password": VALID_PASSWORD},
         )
 
         assert response.status_code == 201
@@ -68,7 +72,7 @@ class TestRegister:
         """Le token retourné par register doit être un JWT valide décodable."""
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": "decodable@example.com", "password": "securepass"},
+            json={"email": "decodable@example.com", "password": VALID_PASSWORD},
         )
 
         assert response.status_code == 201
@@ -85,7 +89,7 @@ class TestRegister:
         email = "persisted@example.com"
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "securepass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
 
         assert response.status_code == 201
@@ -99,13 +103,13 @@ class TestRegister:
         assert user.is_active is True
         assert user.hashed_password is not None
         # Le mot de passe ne doit jamais être stocké en clair
-        assert user.hashed_password != "securepass"
+        assert user.hashed_password != VALID_PASSWORD
         assert user.oauth_provider is None
 
     @pytest.mark.asyncio
     async def test_register_duplicate_email_returns_409(self, client, db_session):
         """Inscrire un email déjà utilisé doit retourner 409 Conflict."""
-        payload = {"email": "duplicate@example.com", "password": "securepass"}
+        payload = {"email": "duplicate@example.com", "password": VALID_PASSWORD}
 
         # Première inscription — succès attendu
         first = await client.post("/api/v1/auth/register", json=payload)
@@ -121,7 +125,7 @@ class TestRegister:
         """Un email malformé doit retourner 422 Unprocessable Entity."""
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": "not-an-email", "password": "securepass"},
+            json={"email": "not-an-email", "password": VALID_PASSWORD},
         )
 
         assert response.status_code == 422
@@ -150,14 +154,16 @@ class TestRegister:
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_register_password_10_chars_returns_201(self, client, db_session):
-        """Un mot de passe de 10 caractères exactement doit être accepté (retourne 201).
+    async def test_register_password_10_chars_valid_complexity_returns_201(
+        self, client, db_session
+    ):
+        """Un mot de passe de 10 caractères avec la complexité requise doit être accepté (201).
 
-        Vérifie le seuil exact : 10 >= 10, donc accepté par Pydantic Field(min_length=10).
+        Vérifie le seuil exact : 10 >= 10 ET complexité satisfaite (maj + min + chiffre).
         """
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": "tenchars@example.com", "password": "dixchar10!"},
+            json={"email": "tenchars@example.com", "password": "Abcdefg1hi"},
         )
 
         assert response.status_code == 201
@@ -187,7 +193,7 @@ class TestRegister:
         """
         import asyncio
 
-        payload = {"email": "concurrent@example.com", "password": "validPass123"}
+        payload = {"email": "concurrent@example.com", "password": "ValidPass123"}
 
         r1, r2 = await asyncio.gather(
             client.post("/api/v1/auth/register", json=payload),
@@ -212,13 +218,13 @@ class TestLogin:
         # Arrange : créer l'utilisateur via register
         await client.post(
             "/api/v1/auth/register",
-            json={"email": "loginuser@example.com", "password": "correctpass"},
+            json={"email": "loginuser@example.com", "password": VALID_PASSWORD},
         )
 
         # Act : connexion
         response = await client.post(
             "/api/v1/auth/login",
-            json={"email": "loginuser@example.com", "password": "correctpass"},
+            json={"email": "loginuser@example.com", "password": VALID_PASSWORD},
         )
 
         assert response.status_code == 200
@@ -235,12 +241,12 @@ class TestLogin:
         email = "subcheck@example.com"
         await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "correctpass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
 
         response = await client.post(
             "/api/v1/auth/login",
-            json={"email": email, "password": "correctpass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
 
         assert response.status_code == 200
@@ -253,12 +259,12 @@ class TestLogin:
         """Un mot de passe incorrect doit retourner 401 avec un message générique."""
         await client.post(
             "/api/v1/auth/register",
-            json={"email": "wrongpass@example.com", "password": "correctpass"},
+            json={"email": "wrongpass@example.com", "password": VALID_PASSWORD},
         )
 
         response = await client.post(
             "/api/v1/auth/login",
-            json={"email": "wrongpass@example.com", "password": "wrongpassword"},
+            json={"email": "wrongpass@example.com", "password": "Wrongpassword9"},
         )
 
         assert response.status_code == 401
@@ -274,7 +280,7 @@ class TestLogin:
         """
         response = await client.post(
             "/api/v1/auth/login",
-            json={"email": "unknown@example.com", "password": "anypassword"},
+            json={"email": "unknown@example.com", "password": "Anypassword9"},
         )
 
         assert response.status_code == 401
@@ -294,7 +300,7 @@ class TestLogin:
         # Créer l'utilisateur via register
         await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "correctpass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
 
         # Désactiver le compte directement en base
@@ -306,7 +312,7 @@ class TestLogin:
         # Tentative de connexion avec un compte désactivé
         response = await client.post(
             "/api/v1/auth/login",
-            json={"email": email, "password": "correctpass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
 
         assert response.status_code == 403
@@ -327,7 +333,7 @@ class TestMe:
         # Arrange : inscription et récupération du token
         register_response = await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "securepass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
         token = register_response.json()["access_token"]
 
@@ -350,7 +356,7 @@ class TestMe:
 
         register_response = await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "securepass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
         token = register_response.json()["access_token"]
 
@@ -398,8 +404,14 @@ class TestMe:
         get_current_user rejette explicitement les tokens avec type != 'access'.
         Ce test protège contre une régression où un refresh token pourrait
         être accepté comme access token.
+
+        On obtient le refresh token via /register pour qu'il soit valide en DB.
         """
-        refresh_token = jwt_module.create_refresh_token(data={"sub": "refreshtest@example.com"})
+        register_response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "refreshasaccess@example.com", "password": VALID_PASSWORD},
+        )
+        refresh_token = register_response.json()["refresh_token"]
 
         response = await client.get(
             "/api/v1/auth/me",
@@ -427,7 +439,7 @@ class TestRefresh:
         email = "refreshvalid@example.com"
         register_response = await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "securepass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
         refresh_token = register_response.json()["refresh_token"]
 
@@ -449,11 +461,11 @@ class TestRefresh:
     async def test_refresh_returns_decodable_access_token(self, client, db_session):
         """Le token retourné par /refresh doit être un access token valide et décodable."""
         email = "refreshdecode@example.com"
-        await client.post(
+        register_response = await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "securepass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
-        refresh_token = jwt_module.create_refresh_token(data={"sub": email})
+        refresh_token = register_response.json()["refresh_token"]
 
         response = await client.post(
             "/api/v1/auth/refresh",
@@ -467,6 +479,34 @@ class TestRefresh:
         assert payload["sub"] == email
 
     @pytest.mark.asyncio
+    async def test_refresh_rotation_old_token_becomes_invalid(self, client, db_session):
+        """Après rotation, l'ancien refresh token doit être rejeté (401).
+
+        Vérifie la rotation effective : le jti de l'ancien token est marqué
+        revoked en base, toute tentative de réutilisation est refusée.
+        """
+        email = "rotation@example.com"
+        register_response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": email, "password": VALID_PASSWORD},
+        )
+        old_refresh = register_response.json()["refresh_token"]
+
+        # Première rotation — consomme le token initial
+        rotate_response = await client.post(
+            "/api/v1/auth/refresh",
+            headers=_auth_headers(old_refresh),
+        )
+        assert rotate_response.status_code == 200
+
+        # Réutiliser l'ancien token doit retourner 401
+        reuse_response = await client.post(
+            "/api/v1/auth/refresh",
+            headers=_auth_headers(old_refresh),
+        )
+        assert reuse_response.status_code == 401
+
+    @pytest.mark.asyncio
     async def test_refresh_with_access_token_returns_401(self, client, db_session):
         """Utiliser un access token sur /refresh doit retourner 401.
 
@@ -477,7 +517,7 @@ class TestRefresh:
         email = "accessasrefresh@example.com"
         register_response = await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "securepass"},
+            json={"email": email, "password": VALID_PASSWORD},
         )
         access_token = register_response.json()["access_token"]
 
@@ -490,15 +530,20 @@ class TestRefresh:
 
     @pytest.mark.asyncio
     async def test_refresh_expired_refresh_token_returns_401(self, client, db_session):
-        """Un refresh token expiré doit retourner 401."""
+        """Un refresh token expiré doit retourner 401.
+
+        jose lève JWTError sur un token dont le claim 'exp' est dépassé.
+        """
         from datetime import datetime
 
         from jose import jwt as jose_jwt
 
-        # Construire manuellement un refresh token expiré
+        # Construire manuellement un refresh token expiré (sans jti en base —
+        # decode_token() lèvera JWTError sur l'expiration avant de vérifier le jti)
         expired_payload = {
             "sub": "expiredrefresh@example.com",
             "type": "refresh",
+            "jti": "00000000-0000-0000-0000-000000000000",
             "exp": datetime(2020, 1, 1, tzinfo=UTC),
         }
         expired_refresh = jose_jwt.encode(
@@ -510,6 +555,29 @@ class TestRefresh:
         response = await client.post(
             "/api/v1/auth/refresh",
             headers=_auth_headers(expired_refresh),
+        )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_without_jti_returns_401(self, client, db_session):
+        """Un refresh token sans claim jti (ancien format pré-rotation) doit retourner 401."""
+        from jose import jwt as jose_jwt
+
+        # Token valide mais sans jti — ne peut pas être vérifié en base
+        payload_no_jti = {
+            "sub": "nojti@example.com",
+            "type": "refresh",
+        }
+        token_no_jti = jose_jwt.encode(
+            payload_no_jti,
+            settings.JWT_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM,
+        )
+
+        response = await client.post(
+            "/api/v1/auth/refresh",
+            headers=_auth_headers(token_no_jti),
         )
 
         assert response.status_code == 401
@@ -535,6 +603,66 @@ class TestRefresh:
 
         # HTTPBearer avec auto_error=True retourne 403 si le header est absent
         assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Tests — POST /api/v1/auth/logout
+# ---------------------------------------------------------------------------
+
+
+class TestLogout:
+    @pytest.mark.asyncio
+    async def test_logout_valid_refresh_token_returns_204(self, client, db_session):
+        """Un logout avec un refresh token valide doit retourner 204."""
+        register_response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "logout@example.com", "password": VALID_PASSWORD},
+        )
+        refresh_token = register_response.json()["refresh_token"]
+
+        response = await client.post(
+            "/api/v1/auth/logout",
+            json={"refresh_token": refresh_token},
+        )
+
+        assert response.status_code == 204
+
+    @pytest.mark.asyncio
+    async def test_logout_invalidates_refresh_token(self, client, db_session):
+        """Après logout, le refresh token révoqué doit retourner 401 sur /refresh."""
+        register_response = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "logoutinvalidate@example.com", "password": VALID_PASSWORD},
+        )
+        refresh_token = register_response.json()["refresh_token"]
+
+        # Logout — révoque le token
+        logout_response = await client.post(
+            "/api/v1/auth/logout",
+            json={"refresh_token": refresh_token},
+        )
+        assert logout_response.status_code == 204
+
+        # Tentative d'utiliser le token révoqué
+        refresh_response = await client.post(
+            "/api/v1/auth/refresh",
+            headers=_auth_headers(refresh_token),
+        )
+        assert refresh_response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_logout_invalid_token_returns_204(self, client, db_session):
+        """Un logout avec un token malformé doit retourner 204 sans erreur.
+
+        Le logout est silencieux sur les tokens invalides pour éviter les fuites
+        d'information et simplifier la logique côté client.
+        """
+        response = await client.post(
+            "/api/v1/auth/logout",
+            json={"refresh_token": "completely.invalid.token"},
+        )
+
+        assert response.status_code == 204
 
 
 # ---------------------------------------------------------------------------
