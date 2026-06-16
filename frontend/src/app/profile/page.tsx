@@ -277,7 +277,11 @@ export default function ProfilePage() {
 
   const handleEducationSave = useCallback(
     async (data: EducationPayload) => {
-      if (!profileData) return;
+      if (!profileData || mutating.current) {
+        setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+        return;
+      }
+      mutating.current = true;
       setModalSaving(true);
       try {
         let nextEducations: EducationPayload[];
@@ -301,6 +305,7 @@ export default function ProfilePage() {
           variant: "error",
         });
       } finally {
+        mutating.current = false;
         setModalSaving(false);
       }
     },
@@ -310,6 +315,11 @@ export default function ProfilePage() {
   const handleEducationDelete = useCallback(async () => {
     if (!profileData || modal?.type !== "education" || modal.mode !== "edit")
       return;
+    if (mutating.current) {
+      setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+      return;
+    }
+    mutating.current = true;
     setModalSaving(true);
     try {
       const deletedId = (modal.item as Education).id;
@@ -327,6 +337,7 @@ export default function ProfilePage() {
         variant: "error",
       });
     } finally {
+      mutating.current = false;
       setModalSaving(false);
     }
   }, [profileData, modal, accessToken]);
@@ -337,7 +348,11 @@ export default function ProfilePage() {
 
   const handleExperienceSave = useCallback(
     async (data: ExperiencePayload) => {
-      if (!profileData) return;
+      if (!profileData || mutating.current) {
+        setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+        return;
+      }
+      mutating.current = true;
       setModalSaving(true);
       try {
         let nextExperiences: ExperiencePayload[];
@@ -361,6 +376,7 @@ export default function ProfilePage() {
           variant: "error",
         });
       } finally {
+        mutating.current = false;
         setModalSaving(false);
       }
     },
@@ -370,6 +386,11 @@ export default function ProfilePage() {
   const handleExperienceDelete = useCallback(async () => {
     if (!profileData || modal?.type !== "experience" || modal.mode !== "edit")
       return;
+    if (mutating.current) {
+      setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+      return;
+    }
+    mutating.current = true;
     setModalSaving(true);
     try {
       const deletedId = (modal.item as Experience).id;
@@ -387,6 +408,7 @@ export default function ProfilePage() {
         variant: "error",
       });
     } finally {
+      mutating.current = false;
       setModalSaving(false);
     }
   }, [profileData, modal, accessToken]);
