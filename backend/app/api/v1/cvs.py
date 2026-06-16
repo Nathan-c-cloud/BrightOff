@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -212,6 +212,7 @@ async def get_cv(
 async def list_cvs(
     current_user: User = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
+    limit: int = Query(default=10, ge=1, le=50),  # noqa: B008
 ) -> CVListResponse:
     """Liste les CVs de l'utilisateur authentifié, triés par created_at DESC."""
     from sqlalchemy import desc
@@ -220,7 +221,7 @@ async def list_cvs(
         select(CV)
         .where(CV.user_id == current_user.id)
         .order_by(desc(CV.created_at))
-        .limit(10)
+        .limit(limit)
     )
     cvs = result.scalars().all()
 

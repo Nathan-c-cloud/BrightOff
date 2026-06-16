@@ -284,6 +284,50 @@ class TestListCvsSorting:
 
 
 # ---------------------------------------------------------------------------
+# Tests query param ?limit=N
+# ---------------------------------------------------------------------------
+
+
+class TestListCvsLimit:
+    @pytest.mark.asyncio
+    async def test_list_cvs_limit_1_returns_at_most_one(
+        self,
+        client_a: AsyncClient,
+        db_session: AsyncSession,
+        user_a: User,
+    ) -> None:
+        """?limit=1 — au plus 1 CV retourné même si l'utilisateur en a plusieurs."""
+        db_session.add_all([
+            _make_cv(user_id=user_a.id),
+            _make_cv(user_id=user_a.id),
+            _make_cv(user_id=user_a.id),
+        ])
+        await db_session.flush()
+
+        response = await client_a.get("/api/v1/cvs?limit=1")
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert len(data["items"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_cvs_limit_invalid_returns_422(
+        self, client_a: AsyncClient
+    ) -> None:
+        """?limit=0 est hors range (ge=1) → 422."""
+        response = await client_a.get("/api/v1/cvs?limit=0")
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_list_cvs_limit_above_max_returns_422(
+        self, client_a: AsyncClient
+    ) -> None:
+        """?limit=51 est hors range (le=50) → 422."""
+        response = await client_a.get("/api/v1/cvs?limit=51")
+        assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
 # Tests 401 — non authentifié
 # ---------------------------------------------------------------------------
 

@@ -74,7 +74,8 @@ export function useLatestCvPolling({
 
     async function fetchLatestCv() {
       try {
-        const list = await listMyCvs(accessToken!);
+        // limit=1 : seul le CV le plus récent est nécessaire pour le polling
+        const list = await listMyCvs(accessToken!, 1);
 
         if (cancelled) return;
 

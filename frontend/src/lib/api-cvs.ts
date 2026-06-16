@@ -192,14 +192,21 @@ export function uploadCv(
  * Utilisé par le dashboard pour détecter un CV en cours de parsing au montage.
  *
  * @param accessToken Bearer token BrightOff (session.backendToken)
+ * @param limit       Nombre max de CVs retournés (1-50, défaut: 10)
  * @returns CvListResponse avec les items et le total
  *
  * @throws {ApiCvsError} status 401 si token invalide ou expiré
  * @throws {ApiCvsError} status 0 + code "NETWORK_ERROR" si réseau indisponible
  */
-export async function listMyCvs(accessToken: string): Promise<CvListResponse> {
+export async function listMyCvs(
+  accessToken: string,
+  limit?: number
+): Promise<CvListResponse> {
   try {
-    const res = await fetch(`${getApiUrl()}/api/v1/cvs`, {
+    const url = limit !== undefined
+      ? `${getApiUrl()}/api/v1/cvs?limit=${limit}`
+      : `${getApiUrl()}/api/v1/cvs`;
+    const res = await fetch(url, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
