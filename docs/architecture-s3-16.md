@@ -790,3 +790,18 @@ afficher un écran dédié avec :
 
 Pas d'affichage d'une page profil partiellement vide. La page profil n'est rendue que si
 `profileData` est non-null.
+
+---
+
+## Delta post-livraison — Reorder sections /profile (validé PO 2026-06-16)
+
+**Décision** : l'ordre des sections dans `profile-main` a été modifié par rapport à la maquette JSX et à la spec architecture initiale.
+
+**Avant (spec initiale)** : Hard skills -> Soft skills -> Formation -> Langues -> Expérience
+**Après (validé PO)** : Expérience -> Formation -> Langues -> Soft skills -> Hard skills
+
+**Pourquoi** : ordre type CV — parcours pro d'abord, compétences comportementales en bas. Donne plus de contexte recruteur à la lecture.
+
+**Impact** : changement d'ordre JSX dans `frontend/src/app/profile/page.tsx` uniquement. Aucun changement de composants ni d'API. Tests `page.test.tsx` ajustés (index `+ Ajouter` recalculés).
+
+**Commit** : `0e91e84 feat(profile): reorder sections (Exp -> Form -> Lang -> Soft -> Hard) après feedback PO`

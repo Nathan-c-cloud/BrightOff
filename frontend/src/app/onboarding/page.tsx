@@ -31,11 +31,6 @@ import {
   resolveUploadError,
 } from "@/lib/api-cvs";
 import { useCvPolling } from "@/hooks/useCvPolling";
-import type { Metadata } from "next";
-
-// Note : metadata ne peut pas être exportée depuis un Client Component.
-// Le titre de la page est défini via document.title dans useEffect si besoin,
-// ou via une page Server Component wrappante (non implémentée ici pour simplifier).
 
 /** Statut interne de la page — plus granulaire que DropZoneState */
 type PageStatus =
