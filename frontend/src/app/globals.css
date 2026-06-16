@@ -553,6 +553,218 @@ body {
     border-top: 1px solid var(--color-border);
   }
 
+  /* --- Page Profil --- */
+
+  .page-wrap.page-wrap--wide {
+    max-width: 1600px;
+    padding: 32px 32px 64px;
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 768px) {
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .profile-side {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: var(--shadow-card);
+  }
+
+  .profile-side h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+  }
+
+  .profile-side .em {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .profile-main {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .profile-section {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .profile-section:last-of-type { border-bottom: none; }
+  .profile-section:first-of-type { padding-top: 0; }
+
+  .profile-section h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-secondary);
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .profile-section .body {
+    color: var(--color-text);
+  }
+  .profile-section .body p {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .profile-section .body p + p {
+    margin-top: 6px;
+  }
+
+  /* Ligne carte formation/expérience avec icône edit à droite */
+  .profile-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .profile-card + .profile-card {
+    border-top: 1px solid var(--color-border);
+  }
+  .profile-card-body {
+    flex: 1;
+  }
+  .profile-card-edit {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
+  }
+  .profile-card-edit:hover {
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  .skill-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .badge-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: var(--radius-badge);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--color-bg-card);
+    border: 1.5px dashed var(--color-primary);
+    color: var(--color-primary);
+    cursor: pointer;
+  }
+  .badge-add:hover {
+    background: var(--color-primary-light);
+  }
+
+  .badge-removable {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 6px 6px 12px;
+    border-radius: var(--radius-badge);
+    background: var(--color-primary-light);
+    color: var(--color-primary-text);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .badge-removable button {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(38, 128, 160, 0.15);
+    color: var(--color-primary-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .badge-removable button:hover {
+    background: rgba(38, 128, 160, 0.3);
+  }
+
+  /* Modale overlay + box */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(43, 58, 74, 0.45);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-box {
+    background: var(--color-bg-card);
+    border-radius: 14px;
+    box-shadow: 0 14px 40px rgba(43, 58, 74, 0.18);
+    padding: 32px 36px;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-box h2 {
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .modal-actions .btn-delete {
+    margin-left: auto;
+    color: var(--color-error);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: var(--radius-btn);
+    transition: background 0.12s;
+  }
+  .modal-actions .btn-delete:hover {
+    background: var(--color-error-bg);
+  }
+
   /* --- Badges --- */
   .badge {
     @apply inline-flex items-center;
