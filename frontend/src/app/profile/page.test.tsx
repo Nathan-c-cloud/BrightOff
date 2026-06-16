@@ -1,257 +1,585 @@
 /**
- * Tests unitaires — Page /profile
+ * Tests d'integration — ProfilePage (/app/profile/page.tsx)
  *
  * Couvre :
- *   - Rendu avec profil existant → champs pré-remplis
- *   - Clic "Enregistrer" → updateMyProfile appelé avec les bonnes données
- *   - Toast succès affiché après save OK
- *   - Erreurs de validation 422 → toast error affiché
- *   - Chargement → indicateur de chargement affiché
+ *   - Loading : spinner visible pendant le chargement
+ *   - Etat 404 : message CTA + bouton "Uploader mon CV" → router.push("/onboarding")
+ *   - Render normal : sections visibles (ProfileSide, SkillsSection, LanguagesSection,
+ *     EducationSection, ExperienceSection)
+ *   - Optimistic update skill add : chip apparait immediatement
+ *   - Rollback skill add : chip disparait si PUT echoue + toast erreur
+ *   - Optimistic update langue add : chip langue apparait immediatement
+ *   - Rollback langue add : chip disparait si PUT echoue + toast erreur
+ *   - Bouton "Mettre a jour mon CV" → router.push("/onboarding")
+ *   - Bouton "Uploader mon CV" (etat 404) → router.push("/onboarding")
+ *   - Modale education : ouverte par "+ Ajouter une formation", fermee apres save
+ *   - Modale education edit : ouverte par clic icone edit
+ *
+ * Mocks :
+ *   - next-auth/react : useSession
+ *   - next/navigation : useRouter, usePathname
+ *   - @/lib/api-profile : getMyProfile, updateMyProfile
+ *   - @/components/ui/NavApp : simplifie (evite les dependances next/link, next/image)
+ *   - @/components/Toast : simplifie (passe les props, evite les timeouts internes)
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ApiProfileError } from "@/lib/api-profile";
+import type { ProfileData } from "@/lib/api-profile";
 
 // ---------------------------------------------------------------------------
-// Mocks des modules externes avant import de la page
+// Mocks — declares avant les imports (hoisting Vitest)
 // ---------------------------------------------------------------------------
 
-// next-auth/react
-const mockSession = {
-  user: { name: "Test User", email: "test@example.com" },
-  backendToken: "fake-token-abc",
-};
+const mockRouterPush = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockRouterPush }),
+  usePathname: () => "/profile",
+}));
 
+const mockUseSession = vi.hoisted(() =>
+  vi.fn().mockReturnValue({
+    data: {
+      user: { name: "Alice Martin", email: "alice@example.com" },
+      backendToken: "mock-token",
+    },
+    status: "authenticated",
+  })
+);
 vi.mock("next-auth/react", () => ({
-  useSession: vi.fn(() => ({ data: mockSession, status: "authenticated" })),
+  useSession: mockUseSession,
   signOut: vi.fn(),
 }));
 
-// next/navigation
-vi.mock("next/navigation", () => ({
-  useRouter: vi.fn(() => ({ push: vi.fn() })),
-  usePathname: vi.fn(() => "/profile"),
-}));
+const mockGetMyProfile = vi.hoisted(() => vi.fn());
+const mockUpdateMyProfile = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api-profile", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-profile")>();
+  return {
+    ...actual,
+    getMyProfile: mockGetMyProfile,
+    updateMyProfile: mockUpdateMyProfile,
+  };
+});
 
-// api-profile
-vi.mock("@/lib/api-profile", () => ({
-  getMyProfile: vi.fn(),
-  updateMyProfile: vi.fn(),
-  ApiProfileError: class ApiProfileError extends Error {
-    constructor(
-      message: string,
-      public readonly status: number,
-      public readonly issues?: unknown[]
-    ) {
-      super(message);
-      this.name = "ApiProfileError";
-    }
-  },
-}));
-
-// NavApp — composant complexe avec usePathname, on le stub
+// Mock NavApp pour eviter les dependances profondes (next/image, next/link)
 vi.mock("@/components/ui/NavApp", () => ({
-  NavApp: ({ userName }: { userName: string }) => (
-    <nav aria-label="navigation">{userName}</nav>
+  NavApp: () => <nav data-testid="nav-app" />,
+}));
+
+// Mock Toast pour controler son affichage en tests
+// (evite les timeouts d'auto-fermeture)
+vi.mock("@/components/Toast", () => ({
+  Toast: ({
+    message,
+    variant,
+    onClose,
+  }: {
+    message: string;
+    variant: string;
+    onClose: () => void;
+  }) => (
+    <div role="alert" data-variant={variant}>
+      {message}
+      <button onClick={onClose}>Fermer</button>
+    </div>
   ),
 }));
 
 // ---------------------------------------------------------------------------
-// Imports après mocks
+// Import du composant APRES les mocks
 // ---------------------------------------------------------------------------
 
 import ProfilePage from "./page";
-import * as apiProfile from "@/lib/api-profile";
-import type { ProfileData } from "@/lib/api-profile";
-
-const mockGetMyProfile = vi.mocked(apiProfile.getMyProfile);
-const mockUpdateMyProfile = vi.mocked(apiProfile.updateMyProfile);
 
 // ---------------------------------------------------------------------------
-// Données de test
+// Factories helpers
 // ---------------------------------------------------------------------------
 
-const MOCK_PROFILE: ProfileData = {
-  id: "profile-uuid-123",
-  title: "Développeur Fullstack",
-  summary: "Passionné par le cloud.",
-  years_of_experience: 3,
-  skills: [
-    { id: "s1", name: "Python", category: "tech", level: 4 },
-    { id: "s2", name: "React", category: "tech", level: 3 },
-  ],
-  experiences: [
-    {
-      id: "e1",
-      company: "Startup SAS",
-      position: "Lead Dev",
-      start_date: "2022-01-01",
-      end_date: "2024-06-30",
-      description: null,
+function makeProfileData(overrides?: Partial<ProfileData>): ProfileData {
+  return {
+    id: "profile-1",
+    title: "Developpeur Fullstack",
+    summary: null,
+    skills: [
+      { id: "s1", name: "React", category: "technique", level: null },
+      { id: "s2", name: "Travail en equipe", category: "soft_skill", level: null },
+    ],
+    experiences: [
+      {
+        id: "exp1",
+        company: "Acme Corp",
+        position: "Dev Fullstack",
+        start_date: "2022-01-01",
+        end_date: "2024-06-01",
+        description: null,
+      },
+    ],
+    educations: [
+      {
+        id: "ed1",
+        school: "ESIGELEC",
+        degree: "Ingenieur",
+        field: "Informatique",
+        start_date: "2020-09-01",
+        end_date: "2023-06-30",
+      },
+    ],
+    languages: [
+      { id: "l1", name: "Anglais", level: "B2" },
+    ],
+    updated_at: "2024-06-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+
+beforeEach(() => {
+  vi.clearAllMocks();
+
+  // Session authentifiee par defaut
+  mockUseSession.mockReturnValue({
+    data: {
+      user: { name: "Alice Martin", email: "alice@example.com" },
+      backendToken: "mock-token",
     },
-  ],
-  educations: [
-    {
-      id: "ed1",
-      school: "EPITECH",
-      degree: "Expert IT",
-      field: "Informatique",
-      start_date: "2017-09-01",
-      end_date: "2022-06-30",
-    },
-  ],
-  languages: [{ id: "l1", name: "Français", level: "Natif" }],
-  updated_at: "2026-06-15T10:00:00Z",
-};
+    status: "authenticated",
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("ProfilePage — chargement", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+describe("ProfilePage", () => {
+  // -------------------------------------------------------------------------
+  // Etat de chargement
+  // -------------------------------------------------------------------------
 
-  it("affiche_indicateur_de_chargement_pendant_le_fetch", () => {
-    // getMyProfile ne résout jamais (pendant le test)
+  it("renders_loading_spinner_while_fetching_profile", async () => {
+    // getMyProfile ne se resout jamais pendant ce test
     mockGetMyProfile.mockReturnValue(new Promise(() => {}));
-
     render(<ProfilePage />);
 
+    // Le spinner est un role="status"
     expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByText(/chargement du profil/i)).toBeInTheDocument();
   });
 
-  it("pre_remplit_les_champs_apres_chargement_du_profil", async () => {
-    mockGetMyProfile.mockResolvedValue(MOCK_PROFILE);
-
+  it("does_not_render_profile_sections_during_loading", () => {
+    mockGetMyProfile.mockReturnValue(new Promise(() => {}));
     render(<ProfilePage />);
 
-    // Attendre que le chargement se termine
+    expect(screen.queryByRole("heading", { name: /hard skills/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /formation/i })).not.toBeInTheDocument();
+  });
+
+  // -------------------------------------------------------------------------
+  // Etat 404 — pas de profil
+  // -------------------------------------------------------------------------
+
+  it("renders_no_profile_cta_when_getMyProfile_returns_404", async () => {
+    mockGetMyProfile.mockRejectedValueOnce(new ApiProfileError("Not found", 404));
+    render(<ProfilePage />);
+
     await waitFor(() => {
       expect(
-        screen.getByDisplayValue("Développeur Fullstack")
+        screen.getByText(/vous n.avez pas encore de profil/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("renders_upload_button_in_404_state", async () => {
+    mockGetMyProfile.mockRejectedValueOnce(new ApiProfileError("Not found", 404));
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /uploader mon cv/i })
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("navigates_to_onboarding_when_upload_cta_clicked_in_404_state", async () => {
+    const user = userEvent.setup();
+    mockGetMyProfile.mockRejectedValueOnce(new ApiProfileError("Not found", 404));
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /uploader mon cv/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /uploader mon cv/i }));
+    expect(mockRouterPush).toHaveBeenCalledWith("/onboarding");
+  });
+
+  // -------------------------------------------------------------------------
+  // Render normal
+  // -------------------------------------------------------------------------
+
+  it("renders_hard_skills_section_after_successful_load", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Hard skills" })).toBeInTheDocument();
+    });
+  });
+
+  it("renders_soft_skills_section_after_successful_load", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Soft skills" })).toBeInTheDocument();
+    });
+  });
+
+  it("renders_languages_section_after_successful_load", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Langues" })).toBeInTheDocument();
+    });
+  });
+
+  it("renders_education_section_after_successful_load", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Formation" })).toBeInTheDocument();
+    });
+  });
+
+  it("renders_experience_section_after_successful_load", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Experience" })).toBeInTheDocument();
+    });
+  });
+
+  it("renders_skills_chips_from_profile_data", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("React")).toBeInTheDocument();
+      expect(screen.getByText("Travail en equipe")).toBeInTheDocument();
+    });
+  });
+
+  it("renders_language_chip_with_level", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/anglais \(b2\)/i)).toBeInTheDocument();
+    });
+  });
+
+  it("renders_education_card", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ingenieur")).toBeInTheDocument();
+      expect(screen.getByText(/esigelec/i)).toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Bouton "Mettre a jour mon CV"
+  // -------------------------------------------------------------------------
+
+  it("navigates_to_onboarding_when_mettre_a_jour_cv_is_clicked", async () => {
+    const user = userEvent.setup();
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      // Deux boutons "Mettre a jour mon CV" existent : aside (ProfileSide) + bas de main
+      expect(screen.getAllByRole("button", { name: /mettre a jour mon cv/i })).toHaveLength(2);
+    });
+
+    // Il peut y avoir plusieurs boutons (ProfileSide + main) — on prend le premier visible
+    const buttons = screen.getAllByRole("button", { name: /mettre a jour mon cv/i });
+    await user.click(buttons[0]);
+    expect(mockRouterPush).toHaveBeenCalledWith("/onboarding");
+  });
+
+  // -------------------------------------------------------------------------
+  // Optimistic update — ajout skill
+  // -------------------------------------------------------------------------
+
+  it("shows_new_skill_chip_immediately_before_put_resolves", async () => {
+    let resolvePut!: (value: ProfileData) => void;
+    const putPromise = new Promise<ProfileData>((resolve) => {
+      resolvePut = resolve;
+    });
+
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    mockUpdateMyProfile.mockReturnValueOnce(putPromise);
+
+    const user = userEvent.setup();
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Hard skills" })).toBeInTheDocument();
+    });
+
+    // Cliquer "+ Ajouter" dans la section hard
+    const addButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
+    await user.click(addButtons[0]);
+
+    const input = screen.getByPlaceholderText(/ajouter/i);
+    await user.type(input, "TypeScript");
+    await user.keyboard("{Enter}");
+
+    // La chip doit apparaitre immediatement (optimistic), avant que le PUT se resolve
+    expect(screen.getByText("TypeScript")).toBeInTheDocument();
+
+    // Resoudre le PUT pour ne pas laisser la promesse en attente
+    const updatedProfile = makeProfileData();
+    updatedProfile.skills.push({ id: "s3", name: "TypeScript", category: "technique", level: null });
+    resolvePut(updatedProfile);
+  });
+
+  it("removes_skill_chip_and_shows_error_toast_when_put_fails", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    mockUpdateMyProfile.mockRejectedValueOnce(new ApiProfileError("Server error", 500));
+
+    const user = userEvent.setup();
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Hard skills" })).toBeInTheDocument();
+    });
+
+    // Ajouter une skill
+    const addButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
+    await user.click(addButtons[0]);
+    const input = screen.getByPlaceholderText(/ajouter/i);
+    await user.type(input, "Vue");
+    await user.keyboard("{Enter}");
+
+    // Attendre que le PUT echoue et le rollback soit effectue
+    await waitFor(() => {
+      expect(screen.queryByText("Vue")).not.toBeInTheDocument();
+    });
+
+    // Toast d'erreur doit etre visible
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/impossible de sauvegarder/i);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Optimistic update — ajout langue
+  // -------------------------------------------------------------------------
+
+  it("shows_new_language_chip_immediately_before_put_resolves", async () => {
+    let resolvePut!: (value: ProfileData) => void;
+    const putPromise = new Promise<ProfileData>((resolve) => {
+      resolvePut = resolve;
+    });
+
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    mockUpdateMyProfile.mockReturnValueOnce(putPromise);
+
+    const user = userEvent.setup();
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Langues" })).toBeInTheDocument();
+    });
+
+    // Cliquer "+ Ajouter" dans la section Langues
+    // Ordre dans le DOM : hard [0], soft [1], education [2], languages [3], experience [4]
+    const allAddButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
+    await user.click(allAddButtons[3]);
+
+    const input = screen.getByPlaceholderText(/langue/i);
+    await user.type(input, "Japonais");
+    await user.keyboard("{Enter}");
+
+    // La chip doit apparaitre immediatement
+    expect(screen.getByText(/japonais/i)).toBeInTheDocument();
+
+    // Resoudre le PUT
+    const updatedProfile = makeProfileData();
+    updatedProfile.languages.push({ id: "l2", name: "Japonais", level: "B1" });
+    resolvePut(updatedProfile);
+  });
+
+  it("removes_language_chip_and_shows_error_toast_when_put_fails", async () => {
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    mockUpdateMyProfile.mockRejectedValueOnce(new ApiProfileError("Server error", 500));
+
+    const user = userEvent.setup();
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Langues" })).toBeInTheDocument();
+    });
+
+    // Ordre dans le DOM : hard [0], soft [1], education [2], languages [3], experience [4]
+    const allAddButtons = screen.getAllByRole("button", { name: /\+ ajouter/i });
+    await user.click(allAddButtons[3]);
+
+    const input = screen.getByPlaceholderText(/langue/i);
+    await user.type(input, "Arabe");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(screen.queryByText(/arabe/i)).not.toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/impossible de sauvegarder/i);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Modale Education — create
+  // -------------------------------------------------------------------------
+
+  it("opens_education_modal_in_create_mode_when_add_formation_clicked", async () => {
+    const user = userEvent.setup();
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ ajouter une formation/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /\+ ajouter une formation/i }));
+
+    expect(
+      screen.getByRole("heading", { name: "Ajouter une formation" })
+    ).toBeInTheDocument();
+  });
+
+  it("closes_education_modal_after_successful_save", async () => {
+    const user = userEvent.setup();
+    const initialProfile = makeProfileData();
+    mockGetMyProfile.mockResolvedValueOnce(initialProfile);
+
+    const updatedProfile = makeProfileData();
+    updatedProfile.educations.push({
+      id: "ed2",
+      school: "EPITECH",
+      degree: "Expert IT",
+      field: null,
+      start_date: "2018-09-01",
+      end_date: "2021-06-30",
+    });
+    mockUpdateMyProfile.mockResolvedValueOnce(updatedProfile);
+
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ ajouter une formation/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /\+ ajouter une formation/i }));
+
+    // Remplir les champs requis
+    await user.type(screen.getByPlaceholderText(/epitech/i), "EPITECH");
+    await user.type(screen.getByPlaceholderText(/master/i), "Expert IT");
+
+    // La modale est rendue via createPortal dans document.body — utiliser getByLabelText
+    const dateInput = screen.getByLabelText(/date de debut/i);
+    fireEvent.change(dateInput, { target: { value: "2018-09-01" } });
+
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Ajouter une formation" })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows_new_education_in_list_after_save", async () => {
+    const user = userEvent.setup();
+    const initialProfile = makeProfileData();
+    mockGetMyProfile.mockResolvedValueOnce(initialProfile);
+
+    const updatedProfile = makeProfileData();
+    updatedProfile.educations.push({
+      id: "ed2",
+      school: "EPITECH",
+      degree: "Expert IT",
+      field: null,
+      start_date: "2018-09-01",
+      end_date: "2021-06-30",
+    });
+    mockUpdateMyProfile.mockResolvedValueOnce(updatedProfile);
+
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ ajouter une formation/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /\+ ajouter une formation/i }));
+
+    await user.type(screen.getByPlaceholderText(/epitech/i), "EPITECH");
+    await user.type(screen.getByPlaceholderText(/master/i), "Expert IT");
+
+    // La modale est rendue via createPortal dans document.body — utiliser getByLabelText
+    const dateInput = screen.getByLabelText(/date de debut/i);
+    fireEvent.change(dateInput, { target: { value: "2018-09-01" } });
+
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Expert IT")).toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Modale Education — edit
+  // -------------------------------------------------------------------------
+
+  it("opens_education_modal_in_edit_mode_with_prefilled_data_when_edit_clicked", async () => {
+    const user = userEvent.setup();
+    mockGetMyProfile.mockResolvedValueOnce(makeProfileData());
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /modifier la formation ingenieur/i })
       ).toBeInTheDocument();
     });
 
-    expect(screen.getByDisplayValue("Passionné par le cloud.")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Années d'expérience/i)).toHaveValue(3);
+    await user.click(
+      screen.getByRole("button", { name: /modifier la formation ingenieur/i })
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Modifier la formation" })
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("ESIGELEC")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Ingenieur")).toBeInTheDocument();
   });
 
-  it("affiche_les_skills_pre_remplies", async () => {
-    mockGetMyProfile.mockResolvedValue(MOCK_PROFILE);
+  // -------------------------------------------------------------------------
+  // Flag mutating — serialisation (documentation)
+  // -------------------------------------------------------------------------
 
-    render(<ProfilePage />);
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("Python")).toBeInTheDocument();
-    });
-
-    expect(screen.getByDisplayValue("React")).toBeInTheDocument();
-  });
-});
-
-describe("ProfilePage — soumission du formulaire", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetMyProfile.mockResolvedValue(MOCK_PROFILE);
-  });
-
-  it("appelle_updateMyProfile_au_clic_sur_enregistrer", async () => {
-    mockUpdateMyProfile.mockResolvedValue(MOCK_PROFILE);
-
-    render(<ProfilePage />);
-
-    // Attendre que le formulaire soit chargé
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("Développeur Fullstack")).toBeInTheDocument();
-    });
-
-    const saveButton = screen.getByRole("button", { name: /enregistrer/i });
-    await userEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockUpdateMyProfile).toHaveBeenCalledOnce();
-    });
-
-    const [token, payload] = mockUpdateMyProfile.mock.calls[0] as [
-      string,
-      unknown
-    ];
-    expect(token).toBe("fake-token-abc");
-    expect(payload).toMatchObject({
-      title: "Développeur Fullstack",
-      summary: "Passionné par le cloud.",
-      years_of_experience: 3,
-    });
-  });
-
-  it("affiche_toast_succes_apres_save_ok", async () => {
-    mockUpdateMyProfile.mockResolvedValue(MOCK_PROFILE);
-
-    render(<ProfilePage />);
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("Développeur Fullstack")).toBeInTheDocument();
-    });
-
-    await userEvent.click(screen.getByRole("button", { name: /enregistrer/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(/enregistré/i);
-    });
-  });
-
-  it("affiche_toast_erreur_en_cas_d_erreur_reseau", async () => {
-    const { ApiProfileError } = await import("@/lib/api-profile");
-    mockUpdateMyProfile.mockRejectedValue(new ApiProfileError("Erreur réseau", 0));
-
-    render(<ProfilePage />);
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("Développeur Fullstack")).toBeInTheDocument();
-    });
-
-    await userEvent.click(screen.getByRole("button", { name: /enregistrer/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toBeInTheDocument();
-    });
-  });
-
-  it("affiche_toast_erreur_sur_422_backend", async () => {
-    const { ApiProfileError } = await import("@/lib/api-profile");
-    const err = new ApiProfileError("Données invalides", 422, [
-      { loc: ["body", "skills", 0, "level"], msg: "Input should be <= 5", type: "less_than_equal" },
-    ]);
-    mockUpdateMyProfile.mockRejectedValue(err);
-
-    render(<ProfilePage />);
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("Développeur Fullstack")).toBeInTheDocument();
-    });
-
-    await userEvent.click(screen.getByRole("button", { name: /enregistrer/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(/invalides/i);
-    });
-  });
-});
-
-describe("ProfilePage — état 404 profil inexistant", () => {
-  it("ne_bloque_pas_le_rendu_si_profil_absent", async () => {
-    const { ApiProfileError } = await import("@/lib/api-profile");
-    mockGetMyProfile.mockRejectedValue(new ApiProfileError("Profile not found", 404));
-
-    render(<ProfilePage />);
-
-    // La page se charge sans profil — le formulaire vide est affiché
-    await waitFor(() => {
-      // L'indicateur de chargement disparaît
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    });
-  });
+  // TODO: Le flag `mutating` (ref interne) empeche les appels PUT concurrents.
+  // Ce comportement n'est pas directement observable en tests jsdom car il
+  // necessite deux clics quasi-simultanees et l'inspection de l'etat d'un ref.
+  // Une approche serait d'ajouter un data-testid="saving" sur le composant,
+  // ou d'espionner updateMyProfile pour verifier qu'il n'est appele qu'une fois
+  // meme apres 2 clics rapides. A implementer si le comportement devient critique.
 });

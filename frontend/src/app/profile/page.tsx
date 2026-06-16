@@ -1,40 +1,31 @@
 "use client";
 
 /**
- * Page /profile — S3-15.
+ * Page /profile — S3-16.
  *
- * Client Component : données utilisateur via useSession(), appels API via
- * les helpers api-profile.ts. Pas de SSR pour cette page.
+ * Refonte complete du layout : 2 colonnes (profile-grid), aside identite,
+ * sections editables a droite avec chips optimistic update.
  *
- * Workflow :
- *   1. Chargement → GET /profile/me → pré-remplissage des formulaires
- *   2. "Enregistrer" → PUT /profile/me → toast succès / erreurs in-context
+ * Strategie mutations :
+ * - Skills et langues : optimistic update local + PUT complet + rollback si erreur.
+ * - Flag `mutating` pour serialiser les appels PUT et eviter les race conditions.
+ * - Education et Experience : modale -> PUT -> re-sync depuis reponse API.
  *
- * La protection de la route /profile est assurée par proxy.ts (déjà configuré).
+ * Etat 404 : si GET /profile/me → 404, ecran dedie avec CTA vers /onboarding.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { NavApp } from "@/components/ui/NavApp";
 import { Toast } from "@/components/Toast";
-import { Button } from "@/components/ui/Button";
-
-import { ProfileIdentitySection } from "@/components/profile/ProfileIdentitySection";
-import type { IdentityFormData } from "@/components/profile/ProfileIdentitySection";
-
-import { ProfileSkillsSection } from "@/components/profile/ProfileSkillsSection";
-import type { LocalSkill } from "@/components/profile/ProfileSkillsSection";
-
-import { ProfileExperiencesSection } from "@/components/profile/ProfileExperiencesSection";
-import type { LocalExperience } from "@/components/profile/ProfileExperiencesSection";
-
-import { ProfileEducationsSection } from "@/components/profile/ProfileEducationsSection";
-import type { LocalEducation } from "@/components/profile/ProfileEducationsSection";
-
-import { ProfileLanguagesSection } from "@/components/profile/ProfileLanguagesSection";
-import type { LocalLanguage } from "@/components/profile/ProfileLanguagesSection";
+import { ProfileSide } from "@/components/profile/ProfileSide";
+import { SkillsSection } from "@/components/profile/SkillsSection";
+import { LanguagesSection } from "@/components/profile/LanguagesSection";
+import { EducationSection } from "@/components/profile/EducationSection";
+import { ExperienceSection } from "@/components/profile/ExperienceSection";
+import { ProfileFormModal } from "@/components/profile/ProfileFormModal";
 
 import {
   getMyProfile,
@@ -43,9 +34,17 @@ import {
 } from "@/lib/api-profile";
 import type {
   ProfileData,
-  ProfileUpdatePayload,
-  ValidationIssue,
+  Education,
+  Experience,
+  EducationPayload,
+  ExperiencePayload,
+  DbSkillCategory,
 } from "@/lib/api-profile";
+import {
+  toUpdatePayload,
+  toExperiencePayload,
+  toEducationPayload,
+} from "@/lib/profile-utils";
 
 // ---------------------------------------------------------------------------
 // Types locaux
@@ -56,67 +55,25 @@ type ToastState = {
   variant: "success" | "error";
 } | null;
 
-// Erreurs retournées par le backend (422) mappées par chemin de champ
-type FieldErrors = Record<string, string>;
+type ModalState =
+  | { type: "education"; mode: "create" }
+  | { type: "education"; mode: "edit"; item: Education }
+  | { type: "experience"; mode: "create" }
+  | { type: "experience"; mode: "edit"; item: Experience };
 
 // ---------------------------------------------------------------------------
-// Helpers de conversion API → formulaire
+// Helper : extraire prenom/nom depuis session
 // ---------------------------------------------------------------------------
 
-function toLocalId() {
-  return `local-${Math.random().toString(36).slice(2)}`;
-}
-
-function profileToFormState(profile: ProfileData): {
-  identity: IdentityFormData;
-  skills: LocalSkill[];
-  experiences: LocalExperience[];
-  educations: LocalEducation[];
-  languages: LocalLanguage[];
+function splitName(fullName: string | null | undefined): {
+  firstName: string;
+  lastName: string;
 } {
-  return {
-    identity: {
-      title: profile.title ?? "",
-      summary: profile.summary ?? "",
-      years_of_experience:
-        profile.years_of_experience !== null
-          ? String(profile.years_of_experience)
-          : "",
-    },
-    skills: profile.skills.map((s) => ({ ...s, _localId: toLocalId() })),
-    experiences: profile.experiences.map((e) => ({
-      ...e,
-      _localId: toLocalId(),
-    })),
-    educations: profile.educations.map((ed) => ({
-      ...ed,
-      _localId: toLocalId(),
-    })),
-    languages: profile.languages.map((l) => ({ ...l, _localId: toLocalId() })),
-  };
-}
-
-/**
- * Parse les issues de validation FastAPI 422 en map de champ → message.
- * Ex: loc ["body", "skills", 0, "level"] → clé "skills[0].level"
- */
-function parseValidationIssues(issues: ValidationIssue[]): FieldErrors {
-  const errors: FieldErrors = {};
-  for (const issue of issues) {
-    // Ignorer "body" en tête de loc
-    const path = issue.loc
-      .filter((part) => part !== "body")
-      .map((part, idx) =>
-        typeof part === "number"
-          ? `[${part}]`
-          : idx === 0
-          ? part
-          : `.${part}`
-      )
-      .join("");
-    errors[path] = issue.msg;
-  }
-  return errors;
+  if (!fullName) return { firstName: "", lastName: "" };
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  const [first, ...rest] = parts;
+  return { firstName: first, lastName: rest.join(" ") };
 }
 
 // ---------------------------------------------------------------------------
@@ -126,26 +83,24 @@ function parseValidationIssues(issues: ValidationIssue[]): FieldErrors {
 export default function ProfilePage() {
   const { data: session, status: sessionStatus } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
 
   const accessToken = session?.backendToken ?? null;
 
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [modal, setModal] = useState<ModalState | null>(null);
+  const [modalSaving, setModalSaving] = useState(false);
 
-  // Form state
-  const [identity, setIdentity] = useState<IdentityFormData>({
-    title: "",
-    summary: "",
-    years_of_experience: "",
-  });
-  const [skills, setSkills] = useState<LocalSkill[]>([]);
-  const [experiences, setExperiences] = useState<LocalExperience[]>([]);
-  const [educations, setEducations] = useState<LocalEducation[]>([]);
-  const [languages, setLanguages] = useState<LocalLanguage[]>([]);
+  // Serialise les mutations sur chips pour eviter les race conditions PUT/PUT
+  const mutating = useRef(false);
 
-  // Charger le profil au montage
+  // ---------------------------------------------------------------------------
+  // Chargement initial
+  // ---------------------------------------------------------------------------
+
   useEffect(() => {
     if (sessionStatus === "loading") return;
     if (!accessToken) return;
@@ -156,23 +111,16 @@ export default function ProfilePage() {
       try {
         const profile = await getMyProfile(accessToken!);
         if (!cancelled) {
-          const form = profileToFormState(profile);
-          setIdentity(form.identity);
-          setSkills(form.skills);
-          setExperiences(form.experiences);
-          setEducations(form.educations);
-          setLanguages(form.languages);
+          setProfileData(profile);
         }
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiProfileError && err.status === 404) {
-          // Pas encore de profil — page vide (l'user peut toujours retourner
-          // uploader un CV) — ne pas bloquer l'affichage
-          setLoading(false);
+          setNotFound(true);
           return;
         }
         setToast({
-          message: "Impossible de charger votre profil. Réessayez.",
+          message: "Impossible de charger votre profil. Reessayez.",
           variant: "error",
         });
       } finally {
@@ -186,145 +134,302 @@ export default function ProfilePage() {
     };
   }, [accessToken, sessionStatus]);
 
-  // Validation côté client minimale
-  function validateForm(): FieldErrors {
-    const errors: FieldErrors = {};
+  // ---------------------------------------------------------------------------
+  // Helper : PUT complet depuis un profileData donne
+  // ---------------------------------------------------------------------------
 
-    // Niveau skill 1-5
-    skills.forEach((s, i) => {
-      if (s.level !== null && (s.level < 1 || s.level > 5)) {
-        errors[`skills[${i}].level`] = "Le niveau doit être entre 1 et 5.";
+  const putProfile = useCallback(
+    async (data: ProfileData): Promise<ProfileData> => {
+      if (!accessToken) throw new Error("No token");
+      return updateMyProfile(accessToken, toUpdatePayload(data));
+    },
+    [accessToken]
+  );
+
+  // ---------------------------------------------------------------------------
+  // Handlers skills (optimistic update + rollback)
+  // ---------------------------------------------------------------------------
+
+  const handleSkillAdd = useCallback(
+    async (name: string, category: DbSkillCategory) => {
+      if (!profileData || mutating.current) return;
+      mutating.current = true;
+
+      const tempId = `temp-${Date.now()}`;
+      const optimistic: ProfileData = {
+        ...profileData,
+        skills: [
+          ...profileData.skills,
+          { id: tempId, name, category, level: null },
+        ],
+      };
+      const previous = profileData;
+      setProfileData(optimistic);
+
+      try {
+        const updated = await putProfile(optimistic);
+        setProfileData(updated);
+      } catch {
+        setProfileData(previous);
+        setToast({
+          message: "Impossible de sauvegarder. Reessayez.",
+          variant: "error",
+        });
+      } finally {
+        mutating.current = false;
       }
-      if (!s.name.trim()) {
-        errors[`skills[${i}].name`] = "Le nom est requis.";
+    },
+    [profileData, putProfile]
+  );
+
+  const handleSkillRemove = useCallback(
+    async (skillId: string) => {
+      if (!profileData || mutating.current) return;
+      mutating.current = true;
+
+      const optimistic: ProfileData = {
+        ...profileData,
+        skills: profileData.skills.filter((s) => s.id !== skillId),
+      };
+      const previous = profileData;
+      setProfileData(optimistic);
+
+      try {
+        const updated = await putProfile(optimistic);
+        setProfileData(updated);
+      } catch {
+        setProfileData(previous);
+        setToast({
+          message: "Impossible de sauvegarder. Reessayez.",
+          variant: "error",
+        });
+      } finally {
+        mutating.current = false;
       }
-    });
+    },
+    [profileData, putProfile]
+  );
 
-    experiences.forEach((e, i) => {
-      if (!e.company.trim())
-        errors[`experiences[${i}].company`] = "L'entreprise est requise.";
-      if (!e.position.trim())
-        errors[`experiences[${i}].position`] = "Le poste est requis.";
-      if (!e.start_date)
-        errors[`experiences[${i}].start_date`] = "La date de début est requise.";
-    });
+  // ---------------------------------------------------------------------------
+  // Handlers langues (optimistic update + rollback)
+  // ---------------------------------------------------------------------------
 
-    educations.forEach((ed, i) => {
-      if (!ed.school.trim())
-        errors[`educations[${i}].school`] = "L'école est requise.";
-      if (!ed.degree.trim())
-        errors[`educations[${i}].degree`] = "Le diplôme est requis.";
-      if (!ed.start_date)
-        errors[`educations[${i}].start_date`] = "La date de début est requise.";
-    });
+  const handleLanguageAdd = useCallback(
+    async (name: string, level: string) => {
+      if (!profileData || mutating.current) return;
+      mutating.current = true;
 
-    return errors;
-  }
+      const tempId = `temp-${Date.now()}`;
+      const optimistic: ProfileData = {
+        ...profileData,
+        languages: [...profileData.languages, { id: tempId, name, level }],
+      };
+      const previous = profileData;
+      setProfileData(optimistic);
 
-  const handleSave = useCallback(async () => {
-    if (!accessToken) return;
+      try {
+        const updated = await putProfile(optimistic);
+        setProfileData(updated);
+      } catch {
+        setProfileData(previous);
+        setToast({
+          message: "Impossible de sauvegarder. Reessayez.",
+          variant: "error",
+        });
+      } finally {
+        mutating.current = false;
+      }
+    },
+    [profileData, putProfile]
+  );
 
-    const clientErrors = validateForm();
-    if (Object.keys(clientErrors).length > 0) {
-      setFieldErrors(clientErrors);
+  const handleLanguageRemove = useCallback(
+    async (languageId: string) => {
+      if (!profileData || mutating.current) return;
+      mutating.current = true;
+
+      const optimistic: ProfileData = {
+        ...profileData,
+        languages: profileData.languages.filter((l) => l.id !== languageId),
+      };
+      const previous = profileData;
+      setProfileData(optimistic);
+
+      try {
+        const updated = await putProfile(optimistic);
+        setProfileData(updated);
+      } catch {
+        setProfileData(previous);
+        setToast({
+          message: "Impossible de sauvegarder. Reessayez.",
+          variant: "error",
+        });
+      } finally {
+        mutating.current = false;
+      }
+    },
+    [profileData, putProfile]
+  );
+
+  // ---------------------------------------------------------------------------
+  // Handlers modale education
+  // ---------------------------------------------------------------------------
+
+  const handleEducationSave = useCallback(
+    async (data: EducationPayload) => {
+      if (!profileData) return;
+      setModalSaving(true);
+      try {
+        let nextEducations: EducationPayload[];
+        if (modal?.type === "education" && modal.mode === "edit") {
+          const editedId = (modal.item as Education).id;
+          nextEducations = profileData.educations.map((ed) =>
+            ed.id === editedId ? data : toEducationPayload(ed)
+          );
+        } else {
+          nextEducations = [...profileData.educations.map(toEducationPayload), data];
+        }
+        const updated = await updateMyProfile(accessToken!, {
+          ...toUpdatePayload(profileData),
+          educations: nextEducations,
+        });
+        setProfileData(updated);
+        setModal(null);
+      } catch {
+        setToast({
+          message: "Impossible de sauvegarder. Reessayez.",
+          variant: "error",
+        });
+      } finally {
+        setModalSaving(false);
+      }
+    },
+    [profileData, modal, accessToken]
+  );
+
+  const handleEducationDelete = useCallback(async () => {
+    if (!profileData || modal?.type !== "education" || modal.mode !== "edit")
+      return;
+    setModalSaving(true);
+    try {
+      const deletedId = (modal.item as Education).id;
+      const updated = await updateMyProfile(accessToken!, {
+        ...toUpdatePayload(profileData),
+        educations: profileData.educations
+          .filter((ed) => ed.id !== deletedId)
+          .map(toEducationPayload),
+      });
+      setProfileData(updated);
+      setModal(null);
+    } catch {
       setToast({
-        message: "Certains champs sont invalides. Vérifiez le formulaire.",
+        message: "Impossible de supprimer. Reessayez.",
         variant: "error",
       });
-      return;
-    }
-
-    setSaving(true);
-    setFieldErrors({});
-
-    const yearsRaw = identity.years_of_experience.trim();
-    const years = yearsRaw === "" ? null : parseInt(yearsRaw, 10);
-
-    const payload: ProfileUpdatePayload = {
-      title: identity.title.trim() || null,
-      summary: identity.summary.trim() || null,
-      years_of_experience: isNaN(years!) ? null : years,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      skills: skills.map(({ _localId, ...s }) => s),
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      experiences: experiences.map(({ _localId, ...e }) => e),
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      educations: educations.map(({ _localId, ...ed }) => ed),
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      languages: languages.map(({ _localId, ...l }) => l),
-    };
-
-    try {
-      const updated = await updateMyProfile(accessToken, payload);
-      // Re-sync depuis la réponse pour récupérer les nouveaux IDs backend
-      const form = profileToFormState(updated);
-      setIdentity(form.identity);
-      setSkills(form.skills);
-      setExperiences(form.experiences);
-      setEducations(form.educations);
-      setLanguages(form.languages);
-
-      setToast({ message: "Profil enregistré avec succès.", variant: "success" });
-    } catch (err) {
-      if (err instanceof ApiProfileError && err.status === 422 && err.issues) {
-        const parsed = parseValidationIssues(err.issues);
-        setFieldErrors(parsed);
-        setToast({
-          message: "Certains champs sont invalides. Vérifiez le formulaire.",
-          variant: "error",
-        });
-      } else {
-        setToast({
-          message: "Une erreur est survenue lors de la sauvegarde. Réessayez.",
-          variant: "error",
-        });
-      }
     } finally {
-      setSaving(false);
+      setModalSaving(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, identity, skills, experiences, educations, languages]);
+  }, [profileData, modal, accessToken]);
 
-  // Navigation active
+  // ---------------------------------------------------------------------------
+  // Handlers modale experience
+  // ---------------------------------------------------------------------------
+
+  const handleExperienceSave = useCallback(
+    async (data: ExperiencePayload) => {
+      if (!profileData) return;
+      setModalSaving(true);
+      try {
+        let nextExperiences: ExperiencePayload[];
+        if (modal?.type === "experience" && modal.mode === "edit") {
+          const editedId = (modal.item as Experience).id;
+          nextExperiences = profileData.experiences.map((exp) =>
+            exp.id === editedId ? data : toExperiencePayload(exp)
+          );
+        } else {
+          nextExperiences = [...profileData.experiences.map(toExperiencePayload), data];
+        }
+        const updated = await updateMyProfile(accessToken!, {
+          ...toUpdatePayload(profileData),
+          experiences: nextExperiences,
+        });
+        setProfileData(updated);
+        setModal(null);
+      } catch {
+        setToast({
+          message: "Impossible de sauvegarder. Reessayez.",
+          variant: "error",
+        });
+      } finally {
+        setModalSaving(false);
+      }
+    },
+    [profileData, modal, accessToken]
+  );
+
+  const handleExperienceDelete = useCallback(async () => {
+    if (!profileData || modal?.type !== "experience" || modal.mode !== "edit")
+      return;
+    setModalSaving(true);
+    try {
+      const deletedId = (modal.item as Experience).id;
+      const updated = await updateMyProfile(accessToken!, {
+        ...toUpdatePayload(profileData),
+        experiences: profileData.experiences
+          .filter((exp) => exp.id !== deletedId)
+          .map(toExperiencePayload),
+      });
+      setProfileData(updated);
+      setModal(null);
+    } catch {
+      setToast({
+        message: "Impossible de supprimer. Reessayez.",
+        variant: "error",
+      });
+    } finally {
+      setModalSaving(false);
+    }
+  }, [profileData, modal, accessToken]);
+
+  // ---------------------------------------------------------------------------
+  // Navigation
+  // ---------------------------------------------------------------------------
+
+  function handleReupload() {
+    router.push("/onboarding");
+  }
+
   const activeLinkId = pathname?.startsWith("/profile") ? "profile" : undefined;
 
-  // Initiales pour la nav
   const rawName =
     session?.user?.name ?? session?.user?.email?.split("@")[0] ?? "Utilisateur";
   const userInitials = rawName.slice(0, 2).toUpperCase();
+  const { firstName, lastName } = splitName(session?.user?.name);
+  const email = session?.user?.email ?? "";
 
   // ---------------------------------------------------------------------------
-  // Rendu
+  // Rendu : etat de chargement
   // ---------------------------------------------------------------------------
 
-  return (
-    <>
-      <NavApp
-        userName={rawName}
-        userInitials={userInitials}
-        activeLinkId={activeLinkId}
-        onLogout={() => signOut({ callbackUrl: "/" })}
-      />
-
-      <div className="page-wrap">
-        <div className="mb-8">
-          <h1
-            className="text-3xl font-extrabold tracking-tight mb-2"
-            style={{ color: "var(--color-text)" }}
-          >
-            Mon profil
-          </h1>
-          <p className="text-base" style={{ color: "var(--color-text-secondary)" }}>
-            Vérifiez et modifiez les informations extraites de votre CV.
-          </p>
-        </div>
-
-        {loading ? (
+  if (loading) {
+    return (
+      <>
+        <NavApp
+          userName={rawName}
+          userInitials={userInitials}
+          activeLinkId={activeLinkId}
+          onLogout={() => signOut({ callbackUrl: "/" })}
+        />
+        <div className="page-wrap">
           <div
-            className="flex items-center gap-3 text-sm"
-            style={{ color: "var(--color-text-secondary)" }}
             role="status"
             aria-live="polite"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              color: "var(--color-text-secondary)",
+            }}
           >
             <span
               style={{
@@ -340,100 +445,182 @@ export default function ProfilePage() {
             />
             Chargement du profil...
           </div>
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSave();
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rendu : etat 404 — pas de profil
+  // ---------------------------------------------------------------------------
+
+  if (notFound || !profileData) {
+    return (
+      <>
+        <NavApp
+          userName={rawName}
+          userInitials={userInitials}
+          activeLinkId={activeLinkId}
+          onLogout={() => signOut({ callbackUrl: "/" })}
+        />
+        <div className="page-wrap">
+          <div
+            style={{
+              textAlign: "center",
+              padding: "60px 24px",
+              background: "var(--color-bg-card)",
+              borderRadius: 12,
+              border: "1px solid var(--color-border)",
+              boxShadow: "var(--shadow-card)",
             }}
-            noValidate
           >
-            <div className="space-y-10">
-              {/* Section Identité */}
-              <div
-                className="card p-6"
-                style={{ border: "1px solid var(--color-border)" }}
-              >
-                <ProfileIdentitySection
-                  value={identity}
-                  onChange={setIdentity}
-                  errors={{
-                    title: fieldErrors["title"],
-                    summary: fieldErrors["summary"],
-                    years_of_experience: fieldErrors["years_of_experience"],
-                  }}
-                />
-              </div>
-
-              {/* Section Skills */}
-              <div
-                className="card p-6"
-                style={{ border: "1px solid var(--color-border)" }}
-              >
-                <ProfileSkillsSection value={skills} onChange={setSkills} />
-              </div>
-
-              {/* Section Expériences */}
-              <div
-                className="card p-6"
-                style={{ border: "1px solid var(--color-border)" }}
-              >
-                <ProfileExperiencesSection
-                  value={experiences}
-                  onChange={setExperiences}
-                />
-              </div>
-
-              {/* Section Formations */}
-              <div
-                className="card p-6"
-                style={{ border: "1px solid var(--color-border)" }}
-              >
-                <ProfileEducationsSection
-                  value={educations}
-                  onChange={setEducations}
-                />
-              </div>
-
-              {/* Section Langues */}
-              <div
-                className="card p-6"
-                style={{ border: "1px solid var(--color-border)" }}
-              >
-                <ProfileLanguagesSection
-                  value={languages}
-                  onChange={setLanguages}
-                />
-              </div>
-            </div>
-
-            {/* Barre d'actions fixe en bas */}
-            <div
-              className="flex justify-end mt-10 pt-6"
-              style={{ borderTop: "1px solid var(--color-border)" }}
+            <p
+              style={{
+                fontSize: 18,
+                color: "var(--color-text)",
+                marginBottom: 24,
+              }}
             >
-              <Button
-                type="submit"
-                variant="coral"
-                size="lg"
-                disabled={saving}
-                aria-disabled={saving}
-              >
-                {saving ? "Enregistrement..." : "Enregistrer"}
-              </Button>
-            </div>
-          </form>
+              Vous n&apos;avez pas encore de profil. Uploadez votre CV pour commencer.
+            </p>
+            <button
+              type="button"
+              className="btn btn-coral"
+              onClick={handleReupload}
+            >
+              Uploader mon CV
+            </button>
+          </div>
+        </div>
+        {toast && (
+          <Toast
+            message={toast.message}
+            variant={toast.variant}
+            onClose={() => setToast(null)}
+          />
         )}
+      </>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rendu principal
+  // ---------------------------------------------------------------------------
+
+  return (
+    <>
+      <NavApp
+        userName={rawName}
+        userInitials={userInitials}
+        activeLinkId={activeLinkId}
+        onLogout={() => signOut({ callbackUrl: "/" })}
+      />
+
+      <div className="page-wrap page-wrap--wide">
+        <h1 style={{ margin: "0 0 24px", fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em" }}>
+          Mon Profil
+        </h1>
+
+        <div className="profile-grid">
+          {/* Aside gauche */}
+          <ProfileSide
+            firstName={firstName}
+            lastName={lastName}
+            email={email}
+            onReupload={handleReupload}
+          />
+
+          {/* Main droite */}
+          <div className="profile-main">
+            <SkillsSection
+              section="hard"
+              skills={profileData.skills}
+              onAdd={handleSkillAdd}
+              onRemove={handleSkillRemove}
+            />
+            <SkillsSection
+              section="soft"
+              skills={profileData.skills}
+              onAdd={handleSkillAdd}
+              onRemove={handleSkillRemove}
+            />
+            <EducationSection
+              educations={profileData.educations}
+              onEdit={(item) => setModal({ type: "education", mode: "edit", item })}
+              onAdd={() => setModal({ type: "education", mode: "create" })}
+            />
+            <LanguagesSection
+              languages={profileData.languages}
+              onAdd={handleLanguageAdd}
+              onRemove={handleLanguageRemove}
+            />
+            <ExperienceSection
+              experiences={profileData.experiences}
+              onEdit={(item) => setModal({ type: "experience", mode: "edit", item })}
+              onAdd={() => setModal({ type: "experience", mode: "create" })}
+            />
+
+            {/* Bouton "Mettre a jour mon CV" en bas de main */}
+            <div style={{ marginTop: 22 }}>
+              <button
+                type="button"
+                className="btn btn-coral"
+                onClick={handleReupload}
+              >
+                Mettre a jour mon CV
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Spinner CSS */}
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      {/* Modale education */}
+      {modal?.type === "education" && (
+        <ProfileFormModal
+          type="education"
+          mode={modal.mode}
+          initialData={
+            modal.mode === "edit"
+              ? {
+                  school: modal.item.school,
+                  degree: modal.item.degree,
+                  field: modal.item.field,
+                  start_date: modal.item.start_date,
+                  end_date: modal.item.end_date,
+                }
+              : undefined
+          }
+          onSave={handleEducationSave}
+          onDelete={modal.mode === "edit" ? handleEducationDelete : undefined}
+          onClose={() => setModal(null)}
+          saving={modalSaving}
+        />
+      )}
 
-      {/* Toast de notification */}
+      {/* Modale experience */}
+      {modal?.type === "experience" && (
+        <ProfileFormModal
+          type="experience"
+          mode={modal.mode}
+          initialData={
+            modal.mode === "edit"
+              ? {
+                  company: modal.item.company,
+                  position: modal.item.position,
+                  start_date: modal.item.start_date,
+                  end_date: modal.item.end_date,
+                  description: modal.item.description,
+                }
+              : undefined
+          }
+          onSave={handleExperienceSave}
+          onDelete={modal.mode === "edit" ? handleExperienceDelete : undefined}
+          onClose={() => setModal(null)}
+          saving={modalSaving}
+        />
+      )}
+
       {toast && (
         <Toast
           message={toast.message}
@@ -441,6 +628,8 @@ export default function ProfilePage() {
           onClose={() => setToast(null)}
         />
       )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }
