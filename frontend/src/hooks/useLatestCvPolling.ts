@@ -20,9 +20,6 @@ import type { CvListItem } from "@/lib/api-cvs";
 import { useCvPolling } from "./useCvPolling";
 import type { CvStatusResponse } from "@/lib/api-cvs";
 
-/** Statuts non-terminaux : le polling doit continuer. */
-const NON_TERMINAL_STATUSES = new Set(["uploading", "parsing"]);
-
 /** État exposé par le hook au composant parent. */
 export type LatestCvState =
   | { phase: "loading" }
@@ -89,15 +86,25 @@ export function useLatestCvPolling({
         // Le backend trie déjà DESC par created_at — le premier est le plus récent
         const latest = list.items[0];
 
-        if (NON_TERMINAL_STATUSES.has(latest.parsing_status)) {
+        if (latest.parsing_status === "ready") {
+          setState({ phase: "ready", cv: latest });
+          // Pas de polling nécessaire
+        } else if (latest.parsing_status === "failed") {
+          setState({ phase: "failed", cv: latest });
+        } else if (
+          latest.parsing_status === "uploading" ||
+          latest.parsing_status === "parsing"
+        ) {
           // Statut non-terminal : on affiche la bannière "parsing" et on démarre le polling
           setState({ phase: "parsing", cv: latest });
           setPollingCvId(latest.id);
-        } else if (latest.parsing_status === "ready") {
-          setState({ phase: "ready", cv: latest });
-          // Pas de polling nécessaire
         } else {
-          // failed
+          // Statut inconnu (nouveau statut backend non géré côté front)
+          console.warn(
+            "useLatestCvPolling: statut CV inattendu",
+            latest.parsing_status,
+            latest.id,
+          );
           setState({ phase: "failed", cv: latest });
         }
       } catch (err) {
