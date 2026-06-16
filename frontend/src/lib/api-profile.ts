@@ -16,9 +16,6 @@
 // "technique" + "outil" = hard skills UI. "soft_skill" = soft skills UI.
 export type DbSkillCategory = "technique" | "outil" | "soft_skill";
 
-/** @deprecated Utiliser DbSkillCategory — conservé temporairement pour compatibilité tests existants */
-export type SkillCategory = DbSkillCategory;
-
 export type LanguageLevel =
   | "A1"
   | "A2"
@@ -62,6 +59,8 @@ export interface Language {
 
 export interface ProfileData {
   id: string;
+  // Conservés en DB et dans la réponse pour future réintroduction UI (Sprint 4+).
+  // Non affichés ni modifiables côté frontend depuis la refonte S3-16.
   title: string | null;
   summary: string | null;
   // years_of_experience absent de l'API depuis S3-16 (conservé en BDD, pas dans la réponse)

@@ -131,6 +131,8 @@ class LanguageIn(BaseModel):
 
 class ProfileResponse(BaseModel):
     id: UUID
+    # Conservés en DB et dans la réponse pour future réintroduction UI (Sprint 4+).
+    # Non affichés ni modifiables côté frontend depuis la refonte S3-16.
     title: str | None = None
     summary: str | None = None
     # years_of_experience intentionnellement absent de la réponse API (retiré en S3-16).
