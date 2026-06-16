@@ -12,7 +12,12 @@
 // Types domaine
 // ---------------------------------------------------------------------------
 
-export type SkillCategory = "tech" | "soft" | "tool" | "language" | "other";
+// Catégories alignées avec le backend (S3-16, QO-1) — valeurs françaises du CV parser.
+// "technique" + "outil" = hard skills UI. "soft_skill" = soft skills UI.
+export type DbSkillCategory = "technique" | "outil" | "soft_skill";
+
+/** @deprecated Utiliser DbSkillCategory — conservé temporairement pour compatibilité tests existants */
+export type SkillCategory = DbSkillCategory;
 
 export type LanguageLevel =
   | "A1"
@@ -27,7 +32,7 @@ export type LanguageLevel =
 export interface Skill {
   id: string;
   name: string;
-  category: SkillCategory;
+  category: DbSkillCategory;
   level: number | null;
 }
 
@@ -59,7 +64,7 @@ export interface ProfileData {
   id: string;
   title: string | null;
   summary: string | null;
-  years_of_experience: number | null;
+  // years_of_experience absent de l'API depuis S3-16 (conservé en BDD, pas dans la réponse)
   skills: Skill[];
   experiences: Experience[];
   educations: Education[];
@@ -73,7 +78,7 @@ export interface ProfileData {
 
 export interface SkillPayload {
   name: string;
-  category: SkillCategory;
+  category: DbSkillCategory;
   level: number | null;
 }
 
@@ -101,7 +106,7 @@ export interface LanguagePayload {
 export interface ProfileUpdatePayload {
   title: string | null;
   summary: string | null;
-  years_of_experience: number | null;
+  // years_of_experience absent du payload depuis S3-16
   skills: SkillPayload[];
   experiences: ExperiencePayload[];
   educations: EducationPayload[];
