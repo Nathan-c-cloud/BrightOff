@@ -59,7 +59,7 @@ export function EducationSection({
       <div className="body">
         {educations.length === 0 ? (
           <p style={{ color: "var(--color-text-secondary)" }}>
-            Aucune formation ajoutee.
+            Aucune formation ajoutée.
           </p>
         ) : (
           educations.map((ed) => (

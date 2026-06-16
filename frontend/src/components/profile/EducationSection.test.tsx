@@ -3,7 +3,7 @@
  *
  * Couvre :
  *   - Render : cartes avec diplome bold, ecole, plage de dates calculee, duree calculee
- *   - Etat vide : message "Aucune formation ajoutee."
+ *   - Etat vide : message "Aucune formation ajoutée."
  *   - Presence icone edit par carte
  *   - Clic icone edit → onEdit(item) appele avec le bon item
  *   - Clic "+ Ajouter une formation" → onAdd appele
@@ -60,7 +60,7 @@ describe("EducationSection", () => {
 
   it("renders_empty_message_when_no_educations", () => {
     render(<EducationSection {...defaultProps({ educations: [] })} />);
-    expect(screen.getByText(/aucune formation ajoutee/i)).toBeInTheDocument();
+    expect(screen.getByText(/aucune formation ajoutée/i)).toBeInTheDocument();
   });
 
   it("still_renders_add_button_when_no_educations", () => {

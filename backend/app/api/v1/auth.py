@@ -146,7 +146,11 @@ async def _emit_token_pair(
     ),
     responses={
         409: {"description": "Un compte avec cet email existe déjà"},
-        422: {"description": "Données invalides (email mal formé, mot de passe trop court ou trop simple)"},
+        422: {
+            "description": (
+                "Données invalides (email mal formé, mot de passe trop court ou trop simple)"
+            )
+        },
         429: {"description": "Trop de tentatives — réessayez dans 1 minute"},
     },
 )

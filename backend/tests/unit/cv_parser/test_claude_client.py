@@ -12,7 +12,6 @@ Stratégie de mock :
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import anthropic
@@ -20,13 +19,13 @@ import httpx
 import pytest
 
 from app.modules.cv_parser.claude_client import (
+    MAX_TOKENS,
     MODEL_ID,
     RATE_LIMIT_RETRY_DELAY_SECONDS,
     TEMPERATURE,
     ClaudeRateLimitError,
     ClaudeTimeoutError,
     InvalidJsonError,
-    MAX_TOKENS,
     _extract_json_from_response,
     parse_cv_with_claude,
 )

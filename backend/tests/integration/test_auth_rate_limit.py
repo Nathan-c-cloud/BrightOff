@@ -47,7 +47,7 @@ class TestLoginRateLimit:
                 json={"email": "ratelimit@example.com", "password": "Anypassword9"},
                 headers=headers,
             )
-            assert resp.status_code != 429, f"Expected non-429 but got 429 before limit reached"
+            assert resp.status_code != 429, "Expected non-429 but got 429 before limit reached"
 
         # La 6e doit être bloquée
         resp = await client.post(

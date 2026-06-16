@@ -26,7 +26,7 @@ function ExperienceCard({ experience, onEdit }: ExperienceCardProps) {
       <button
         type="button"
         className="profile-card-edit"
-        aria-label={`Modifier l'experience ${experience.position}`}
+        aria-label={`Modifier l'expérience ${experience.position}`}
         onClick={onEdit}
         title="Modifier"
       >
@@ -53,11 +53,11 @@ export function ExperienceSection({
 }: ExperienceSectionProps) {
   return (
     <div className="profile-section">
-      <h3>Experience</h3>
+      <h3>Expérience</h3>
       <div className="body">
         {experiences.length === 0 ? (
           <p style={{ color: "var(--color-text-secondary)" }}>
-            Aucune experience ajoutee.
+            Aucune expérience ajoutée.
           </p>
         ) : (
           experiences.map((exp) => (
@@ -74,7 +74,7 @@ export function ExperienceSection({
           style={{ marginTop: 12 }}
           onClick={onAdd}
         >
-          + Ajouter une experience
+          + Ajouter une expérience
         </button>
       </div>
     </div>

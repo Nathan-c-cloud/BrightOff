@@ -2,7 +2,7 @@
  * Tests unitaires — ProfileSide
  *
  * Couvre :
- *   - Render : nom complet, email, bouton "Mettre a jour mon CV"
+ *   - Render : nom complet, email, bouton "Mettre à jour mon CV"
  *   - Avatar : initiales calculees depuis prenom + nom
  *   - Clic bouton → callback onReupload appele
  *   - Cas prenom ou nom vide : initiales et nom complet corrects
@@ -57,7 +57,7 @@ describe("ProfileSide", () => {
   it("renders_reupload_button", () => {
     render(<ProfileSide {...defaultProps()} />);
     expect(
-      screen.getByRole("button", { name: /mettre a jour mon cv/i })
+      screen.getByRole("button", { name: /mettre à jour mon cv/i })
     ).toBeInTheDocument();
   });
 
@@ -122,7 +122,7 @@ describe("ProfileSide", () => {
     const onReupload = vi.fn();
     const user = userEvent.setup();
     render(<ProfileSide {...defaultProps({ onReupload })} />);
-    await user.click(screen.getByRole("button", { name: /mettre a jour mon cv/i }));
+    await user.click(screen.getByRole("button", { name: /mettre à jour mon cv/i }));
     expect(onReupload).toHaveBeenCalledOnce();
   });
 

@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -29,7 +29,6 @@ from app.core.base import Base
 from app.core.config import settings
 from app.modules.auth.models import User
 from app.modules.cv_parser.models import CV
-
 
 # ---------------------------------------------------------------------------
 # URL de test — même logique que les autres suites
@@ -140,7 +139,7 @@ async def _create_cv(
     # On force la valeur via un UPDATE SQL direct pour maîtriser l'instant précis.
     from sqlalchemy import update as sa_update
 
-    target_time = datetime.now(timezone.utc) + updated_at_offset
+    target_time = datetime.now(UTC) + updated_at_offset
     await session.execute(
         sa_update(CV).where(CV.id == cv.id).values(updated_at=target_time)
     )
@@ -157,7 +156,9 @@ async def _create_cv(
 
 class TestCleanupStuckCvs:
     @pytest.mark.asyncio
-    async def test_stuck_cv_is_marked_failed(self, committing_session, patched_session_local, test_user):
+    async def test_stuck_cv_is_marked_failed(
+        self, committing_session, patched_session_local, test_user
+    ):
         """Un CV en parsing depuis plus de 5 min doit être marqué failed."""
         from app.jobs.cleanup_stuck_cvs import cleanup_stuck_cvs
 
@@ -175,7 +176,9 @@ class TestCleanupStuckCvs:
         assert cv.parsing_status == "failed"
 
     @pytest.mark.asyncio
-    async def test_recent_parsing_cv_is_not_touched(self, committing_session, patched_session_local, test_user):
+    async def test_recent_parsing_cv_is_not_touched(
+        self, committing_session, patched_session_local, test_user
+    ):
         """Un CV en parsing depuis moins de 5 min ne doit pas être modifié."""
         from app.jobs.cleanup_stuck_cvs import cleanup_stuck_cvs
 
@@ -193,7 +196,9 @@ class TestCleanupStuckCvs:
         assert cv.parsing_status == "parsing"
 
     @pytest.mark.asyncio
-    async def test_ready_cv_is_not_touched(self, committing_session, patched_session_local, test_user):
+    async def test_ready_cv_is_not_touched(
+        self, committing_session, patched_session_local, test_user
+    ):
         """Un CV déjà en status ready ne doit pas être modifié, même s'il est ancien."""
         from app.jobs.cleanup_stuck_cvs import cleanup_stuck_cvs
 
@@ -252,7 +257,9 @@ class TestCleanupStuckCvs:
         assert cv3.parsing_status == "ready"
 
     @pytest.mark.asyncio
-    async def test_dry_run_does_not_modify_db(self, committing_session, patched_session_local, test_user):
+    async def test_dry_run_does_not_modify_db(
+        self, committing_session, patched_session_local, test_user
+    ):
         """En dry_run=True, aucun CV ne doit être modifié en base."""
         from app.jobs.cleanup_stuck_cvs import cleanup_stuck_cvs
 
@@ -271,7 +278,9 @@ class TestCleanupStuckCvs:
         assert cv.parsing_status == "parsing"
 
     @pytest.mark.asyncio
-    async def test_returns_zero_when_no_stuck_cvs(self, committing_session, patched_session_local, test_user):
+    async def test_returns_zero_when_no_stuck_cvs(
+        self, committing_session, patched_session_local, test_user
+    ):
         """Sans CV bloqué, cleanup_stuck_cvs retourne 0."""
         from app.jobs.cleanup_stuck_cvs import cleanup_stuck_cvs
 
@@ -287,7 +296,9 @@ class TestCleanupStuckCvs:
         assert count == 0
 
     @pytest.mark.asyncio
-    async def test_custom_threshold_is_respected(self, committing_session, patched_session_local, test_user):
+    async def test_custom_threshold_is_respected(
+        self, committing_session, patched_session_local, test_user
+    ):
         """Un threshold personnalisé doit être pris en compte correctement."""
         from app.jobs.cleanup_stuck_cvs import cleanup_stuck_cvs
 

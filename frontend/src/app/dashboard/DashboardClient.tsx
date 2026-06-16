@@ -36,7 +36,7 @@ export default function DashboardClient({ userName, userInitials }: DashboardCli
   const { current: toast, enqueue, close } = useToastQueue();
 
   const handleReady = useCallback(
-    (_cv: CvStatusResponse) => {
+    (_: CvStatusResponse) => {
       enqueue("Ton profil est prêt !", "success");
     },
     [enqueue]

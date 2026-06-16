@@ -181,8 +181,6 @@ class TestCreateRefreshToken:
 
     def test_create_refresh_token_contains_jti(self):
         """Le payload du refresh token doit contenir le claim 'jti' pour la rotation effective."""
-        from uuid import UUID
-
         token, jti, expires_at = create_refresh_token(data={"sub": "user@example.com"})
         payload = decode_token(token)
 

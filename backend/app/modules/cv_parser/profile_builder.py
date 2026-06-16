@@ -33,7 +33,9 @@ _SKILL_CATEGORY_MAP = {
     "tech": "technique",
     "soft": "soft_skill",
     "tool": "outil",
-    "language": "outil",      # "Anglais professionnel" classé en skill → outil métier ; la table languages reste source de vérité pour les langues parlées
+    # "Anglais professionnel" classé en skill → outil métier ;
+    # la table languages reste source de vérité pour les langues parlées
+    "language": "outil",
     "other": "technique",     # fallback conservateur
     # Passthrough pour les valeurs déjà conformes (au cas où le prompt aurait déjà été mis à jour) :
     "technique": "technique",
@@ -49,7 +51,9 @@ def _normalize_category(raw: str | None) -> str:
     key = (raw or "").lower()
     normalized = _SKILL_CATEGORY_MAP.get(key, _DEFAULT_SKILL_CATEGORY)
     if normalized == _DEFAULT_SKILL_CATEGORY and key not in _SKILL_CATEGORY_MAP:
-        log.warning("Catégorie de skill inconnue %r — fallback sur %r", raw, _DEFAULT_SKILL_CATEGORY)
+        log.warning(
+            "Catégorie de skill inconnue %r — fallback sur %r", raw, _DEFAULT_SKILL_CATEGORY
+        )
     return normalized
 
 

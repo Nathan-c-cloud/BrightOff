@@ -2,7 +2,16 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -122,7 +131,7 @@ async def upload_cv(
     except S3UploadError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to store CV. Please try again later.",
+            detail="Échec du stockage du CV. Veuillez réessayer plus tard.",
         ) from exc
 
     background_tasks.add_task(trigger_parsing, cv.id)

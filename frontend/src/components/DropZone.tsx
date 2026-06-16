@@ -94,6 +94,10 @@ export function DropZone({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // État local minimal : erreur de validation client (avant l'envoi)
+  // Distinct de errorMessage (erreur serveur ou état parent)
+  const [localValidationError, setLocalValidationError] = useState<string | null>(null);
+
   const handleFileSelected = useCallback(
     (file: File) => {
       const error = validateFile(file);
@@ -130,10 +134,6 @@ export function DropZone({
     },
     [onFile]
   );
-
-  // État local minimal : erreur de validation client (avant l'envoi)
-  // Distinct de errorMessage (erreur serveur ou état parent)
-  const [localValidationError, setLocalValidationError] = useState<string | null>(null);
 
   // L'erreur affichée : erreur parent > erreur locale de validation
   const displayedError = errorMessage ?? localValidationError;

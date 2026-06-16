@@ -65,11 +65,14 @@ export function useCvPolling({
   const onTimeoutRef = useRef(onTimeout);
   const onErrorRef = useRef(onError);
 
-  // Mise à jour des refs à chaque render pour toujours avoir les dernières valeurs
-  onReadyRef.current = onReady;
-  onFailedRef.current = onFailed;
-  onTimeoutRef.current = onTimeout;
-  onErrorRef.current = onError;
+  // Mise à jour des refs après chaque render pour toujours avoir les dernières valeurs.
+  // Placé dans un useEffect sans deps pour s'exécuter après le rendu (pas pendant).
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onFailedRef.current = onFailed;
+    onTimeoutRef.current = onTimeout;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     // Polling désactivé si cvId ou accessToken absent

@@ -13,7 +13,6 @@ Stratégie de mocks :
 from __future__ import annotations
 
 import io
-import uuid
 from unittest.mock import MagicMock, patch
 
 import docx
@@ -38,7 +37,7 @@ from app.modules.cv_parser.extractors import (
 _MINIMAL_PDF = b"""%PDF-1.4
 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
+3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj  # noqa: E501
 4 0 obj<</Length 44>>
 stream
 BT /F1 12 Tf 100 700 Td (Test CV) Tj ET

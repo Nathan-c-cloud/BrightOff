@@ -19,7 +19,7 @@ est mis à jour. Un message d'erreur structuré nécessiterait une migration (Sp
 import argparse
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, update
 
@@ -31,13 +31,15 @@ log = logging.getLogger(__name__)
 DEFAULT_THRESHOLD_MINUTES = 5
 
 
-async def cleanup_stuck_cvs(threshold_minutes: int = DEFAULT_THRESHOLD_MINUTES, dry_run: bool = False) -> int:
+async def cleanup_stuck_cvs(
+    threshold_minutes: int = DEFAULT_THRESHOLD_MINUTES, dry_run: bool = False
+) -> int:
     """
     Marque comme "failed" les CVs en "parsing" depuis plus de threshold_minutes.
 
     Retourne le nombre de CVs traités.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=threshold_minutes)
+    cutoff = datetime.now(UTC) - timedelta(minutes=threshold_minutes)
 
     async with AsyncSessionLocal() as db:
         stmt = select(CV).where(
@@ -84,7 +86,9 @@ async def _main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
     count = await cleanup_stuck_cvs(args.threshold_minutes, args.dry_run)
     print(f"Cleanup terminé : {count} CV(s) traités")
 

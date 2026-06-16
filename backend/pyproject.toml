@@ -32,6 +32,14 @@ ignore = []
 # Le SYSTEM_PROMPT et les exemples JSON dans prompt.py sont portés verbatim depuis le benchmark
 # validé — les lignes longues sont intentionnelles et ne doivent pas être reformatées.
 "app/modules/cv_parser/prompt.py" = ["E501"]
+# Fixture PDF binaire dans une bytes string — la structure de l'objet 3 0 obj ne peut pas
+# être reformattée sans casser le fixture PDF parsé par pdfplumber.
+"tests/unit/cv_parser/test_extractors.py" = ["E501"]
+# Tests Claude/orchestration utilisent des nested `with patch(...)` pour l'isolation
+# explicite du contexte de mock — SIM117 propose de combiner mais ça réduit la lisibilité
+# (4+ mocks empilés sur une seule ligne).
+"tests/unit/cv_parser/test_claude_client.py" = ["SIM117"]
+"tests/unit/cv_parser/test_tasks_orchestration.py" = ["SIM117"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -48,7 +48,8 @@ ALLOWED_MIME_TYPES: dict[str, str] = {
 
 # Regex pour valider le filename original (audit sécurité, point 4)
 # \w avec flag UNICODE inclut [a-zA-Z0-9_] + lettres accentuées latines (é, è, ç, ñ...)
-# nécessaires pour une app francophone, sans ouvrir aux caractères dangereux (/, \, \x00, <, >, etc.)
+# nécessaires pour une app francophone, sans ouvrir aux caractères dangereux
+# (/, \, \x00, <, >, etc.)
 _FILENAME_RE = re.compile(r"^[\w .\-]{1,200}$", re.UNICODE)
 
 

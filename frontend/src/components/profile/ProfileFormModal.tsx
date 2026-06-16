@@ -373,8 +373,8 @@ export function ProfileFormModal(props: ProfileFormModalProps) {
         ? "Modifier la formation"
         : "Ajouter une formation"
       : mode === "edit"
-      ? "Modifier l'experience"
-      : "Ajouter une experience";
+      ? "Modifier l'expérience"
+      : "Ajouter une expérience";
 
   const modalContent = (
     <div

@@ -10,14 +10,14 @@
  *   - Rollback skill add : chip disparait si PUT echoue + toast erreur
  *   - Optimistic update langue add : chip langue apparait immediatement
  *   - Rollback langue add : chip disparait si PUT echoue + toast erreur
- *   - Bouton "Mettre a jour mon CV" → router.push("/onboarding")
+ *   - Bouton "Mettre à jour mon CV" → router.push("/onboarding")
  *   - Bouton "Uploader mon CV" (etat 404) → router.push("/onboarding")
  *   - Modale education : ouverte par "+ Ajouter une formation", fermee apres save
  *
  * Ordre des sections dans profile-main (S3-16 follow-up) :
  *   Expérience → Formation → Langues → Soft skills → Hard skills
  * Ordre des boutons "+ Ajouter" dans le DOM :
- *   [0] "+ Ajouter une experience" | [1] "+ Ajouter une formation" |
+ *   [0] "+ Ajouter une expérience" | [1] "+ Ajouter une formation" |
  *   [2] "+ Ajouter" Langues | [3] "+ Ajouter" Soft | [4] "+ Ajouter" Hard
  *   - Modale education edit : ouverte par clic icone edit
  *
@@ -268,7 +268,7 @@ describe("ProfilePage", () => {
     render(<ProfilePage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Experience" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Expérience" })).toBeInTheDocument();
     });
   });
 
@@ -302,7 +302,7 @@ describe("ProfilePage", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Bouton "Mettre a jour mon CV"
+  // Bouton "Mettre à jour mon CV"
   // -------------------------------------------------------------------------
 
   it("navigates_to_onboarding_when_mettre_a_jour_cv_is_clicked", async () => {
@@ -311,12 +311,12 @@ describe("ProfilePage", () => {
     render(<ProfilePage />);
 
     await waitFor(() => {
-      // Deux boutons "Mettre a jour mon CV" existent : aside (ProfileSide) + bas de main
-      expect(screen.getAllByRole("button", { name: /mettre a jour mon cv/i })).toHaveLength(2);
+      // Deux boutons "Mettre à jour mon CV" existent : aside (ProfileSide) + bas de main
+      expect(screen.getAllByRole("button", { name: /mettre à jour mon cv/i })).toHaveLength(2);
     });
 
     // Il peut y avoir plusieurs boutons (ProfileSide + main) — on prend le premier visible
-    const buttons = screen.getAllByRole("button", { name: /mettre a jour mon cv/i });
+    const buttons = screen.getAllByRole("button", { name: /mettre à jour mon cv/i });
     await user.click(buttons[0]);
     expect(mockRouterPush).toHaveBeenCalledWith("/onboarding");
   });

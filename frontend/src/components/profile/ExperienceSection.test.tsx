@@ -3,10 +3,10 @@
  *
  * Couvre :
  *   - Render : cartes avec poste bold, entreprise, plage de dates calculee, duree calculee
- *   - Etat vide : message "Aucune experience ajoutee."
+ *   - Etat vide : message "Aucune expérience ajoutée."
  *   - Presence icone edit par carte
  *   - Clic icone edit → onEdit(item) appele avec le bon item
- *   - Clic "+ Ajouter une experience" → onAdd appele
+ *   - Clic "+ Ajouter une expérience" → onAdd appele
  *   - Plusieurs experiences : toutes affichees
  */
 
@@ -60,13 +60,13 @@ describe("ExperienceSection", () => {
 
   it("renders_empty_message_when_no_experiences", () => {
     render(<ExperienceSection {...defaultProps({ experiences: [] })} />);
-    expect(screen.getByText(/aucune experience ajoutee/i)).toBeInTheDocument();
+    expect(screen.getByText(/aucune expérience ajoutée/i)).toBeInTheDocument();
   });
 
   it("still_renders_add_button_when_no_experiences", () => {
     render(<ExperienceSection {...defaultProps({ experiences: [] })} />);
     expect(
-      screen.getByRole("button", { name: /\+ ajouter une experience/i })
+      screen.getByRole("button", { name: /\+ ajouter une expérience/i })
     ).toBeInTheDocument();
   });
 
@@ -120,7 +120,7 @@ describe("ExperienceSection", () => {
       makeExperience({ id: "exp2", position: "Dev Backend" }),
     ];
     render(<ExperienceSection {...defaultProps({ experiences })} />);
-    const editButtons = screen.getAllByRole("button", { name: /modifier l.experience/i });
+    const editButtons = screen.getAllByRole("button", { name: /modifier l.expérience/i });
     expect(editButtons).toHaveLength(2);
   });
 
@@ -131,7 +131,7 @@ describe("ExperienceSection", () => {
     render(<ExperienceSection {...defaultProps({ experiences: [experience], onEdit })} />);
 
     await user.click(
-      screen.getByRole("button", { name: /modifier l.experience developpeur fullstack/i })
+      screen.getByRole("button", { name: /modifier l.expérience developpeur fullstack/i })
     );
     expect(onEdit).toHaveBeenCalledOnce();
     expect(onEdit).toHaveBeenCalledWith(experience);
@@ -145,13 +145,13 @@ describe("ExperienceSection", () => {
     render(<ExperienceSection {...defaultProps({ experiences: [exp1, exp2], onEdit })} />);
 
     await user.click(
-      screen.getByRole("button", { name: /modifier l.experience dev backend/i })
+      screen.getByRole("button", { name: /modifier l.expérience dev backend/i })
     );
     expect(onEdit).toHaveBeenCalledWith(exp2);
   });
 
   // -------------------------------------------------------------------------
-  // Bouton "+ Ajouter une experience"
+  // Bouton "+ Ajouter une expérience"
   // -------------------------------------------------------------------------
 
   it("calls_onAdd_when_add_button_is_clicked", async () => {
@@ -159,7 +159,7 @@ describe("ExperienceSection", () => {
     const user = userEvent.setup();
     render(<ExperienceSection {...defaultProps({ onAdd })} />);
 
-    await user.click(screen.getByRole("button", { name: /\+ ajouter une experience/i }));
+    await user.click(screen.getByRole("button", { name: /\+ ajouter une expérience/i }));
     expect(onAdd).toHaveBeenCalledOnce();
   });
 
@@ -169,7 +169,7 @@ describe("ExperienceSection", () => {
 
   it("renders_experience_heading", () => {
     render(<ExperienceSection {...defaultProps()} />);
-    expect(screen.getByRole("heading", { name: "Experience" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Expérience" })).toBeInTheDocument();
   });
 
   // -------------------------------------------------------------------------

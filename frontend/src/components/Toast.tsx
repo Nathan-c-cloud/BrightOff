@@ -67,7 +67,6 @@ export function Toast({
     return () => clearTimeout(timer);
     // onClose est intentionnellement absent des deps : on utilise onCloseRef
     // pour éviter les resets de timer causés par les références inline instables.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration]);
 
   const isSuccess = variant === "success";

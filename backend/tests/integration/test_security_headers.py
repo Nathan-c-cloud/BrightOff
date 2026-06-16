@@ -104,7 +104,8 @@ class TestHSTSInProd:
     async def test_hsts_present_in_prod(self):
         """En ENVIRONMENT=prod, Strict-Transport-Security doit être injecté avec la valeur exacte.
 
-        Instancie une app FastAPI minimale ad-hoc avec SecurityHeadersMiddleware(environment="prod")
+        Instancie une app FastAPI minimale ad-hoc avec
+        SecurityHeadersMiddleware(environment="prod")
         pour ne pas dépendre du singleton settings ni de la fixture conftest qui force "dev".
         """
         prod_app = FastAPI()

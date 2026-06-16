@@ -125,7 +125,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, sessionStatus]);
+  }, [accessToken, sessionStatus, enqueue]);
 
   // ---------------------------------------------------------------------------
   // Helper : PUT complet depuis un profileData donne
@@ -551,14 +551,14 @@ export default function ProfilePage() {
               onRemove={handleSkillRemove}
             />
 
-            {/* Bouton "Mettre a jour mon CV" en bas de main */}
+            {/* Bouton "Mettre à jour mon CV" en bas de main */}
             <div style={{ marginTop: 22 }}>
               <button
                 type="button"
                 className="btn btn-coral"
                 onClick={handleReupload}
               >
-                Mettre a jour mon CV
+                Mettre à jour mon CV
               </button>
             </div>
           </div>

@@ -37,7 +37,7 @@ export function ProfileSide({
         style={{ width: "100%", marginTop: 18 }}
         onClick={onReupload}
       >
-        Mettre a jour mon CV
+        Mettre à jour mon CV
       </button>
     </aside>
   );

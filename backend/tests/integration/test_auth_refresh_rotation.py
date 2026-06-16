@@ -16,8 +16,8 @@ Exécution :
 
 from datetime import UTC, datetime
 
-import pytest
 import jwt as jose_jwt
+import pytest
 
 from app.core.config import settings
 
@@ -31,7 +31,9 @@ def _auth_headers(token: str) -> dict:
 class TestRefreshRotation:
     @pytest.mark.asyncio
     async def test_login_returns_refresh_token_usable_once(self, client, db_session):
-        """Un refresh token issu du login peut être utilisé une fois pour obtenir de nouveaux tokens."""
+        """Un refresh token issu du login peut être utilisé une fois
+        pour obtenir de nouveaux tokens.
+        """
         login_response = await client.post(
             "/api/v1/auth/login",
             json={"email": "rotationlogin@example.com", "password": VALID_PASSWORD},

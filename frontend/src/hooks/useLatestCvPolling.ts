@@ -66,6 +66,9 @@ export function useLatestCvPolling({
   // Fetch initial au montage
   useEffect(() => {
     if (!accessToken) {
+      // setState synchrone intentionnel : accessToken absent → état no-cv immédiat,
+      // pas de fetch à lancer. Le double render est négligeable et voulu ici.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ phase: "no-cv" });
       return;
     }

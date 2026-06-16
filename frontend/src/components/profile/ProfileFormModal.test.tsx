@@ -4,7 +4,7 @@
  * Couvre :
  *   - Education mode create : modale visible avec titre "Ajouter une formation", champs vides
  *   - Education mode edit : champs préremplis depuis initialData
- *   - Experience mode create : titre "Ajouter une experience", champs specifiques (entreprise, poste...)
+ *   - Experience mode create : titre "Ajouter une expérience", champs specifiques (entreprise, poste...)
  *   - Experience mode edit : champs préremplis
  *   - Validation : champs requis manquants → onSave non appele
  *   - Submit valid → onSave appele avec payload correct
@@ -257,7 +257,7 @@ describe("ProfileFormModal — experience create", () => {
   it("renders_modal_with_title_ajouter_une_experience", () => {
     render(<ProfileFormModal {...defaultExperienceCreateProps()} />);
     expect(
-      screen.getByRole("heading", { name: "Ajouter une experience" })
+      screen.getByRole("heading", { name: "Ajouter une expérience" })
     ).toBeInTheDocument();
   });
 
@@ -325,7 +325,7 @@ describe("ProfileFormModal — experience edit", () => {
   it("renders_modal_with_title_modifier_experience", () => {
     render(<ProfileFormModal {...defaultExperienceEditProps()} />);
     expect(
-      screen.getByRole("heading", { name: "Modifier l'experience" })
+      screen.getByRole("heading", { name: "Modifier l'expérience" })
     ).toBeInTheDocument();
   });
 

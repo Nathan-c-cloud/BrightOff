@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
 import pytest_asyncio
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -327,7 +326,7 @@ class TestUpsertProfileMinimalData:
     async def test_upsert_minimal_data_creates_profile_with_nulls(
         self, db_session, test_user, test_cv
     ):
-        profile = await upsert_profile(db_session, test_user.id, test_cv.id, _PARSED_MINIMAL)
+        await upsert_profile(db_session, test_user.id, test_cv.id, _PARSED_MINIMAL)
 
         result = await db_session.execute(
             select(Profile).where(Profile.user_id == test_user.id)
