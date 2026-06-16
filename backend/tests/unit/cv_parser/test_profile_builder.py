@@ -40,9 +40,9 @@ _PARSED_FULL = {
     "summary": "Expert React et FastAPI",
     "years_of_experience": 4,
     "skills": [
-        {"name": "Python", "category": "tech", "level": 4},
-        {"name": "React", "category": "tech", "level": 3},
-        {"name": "Leadership", "category": "soft", "level": None},
+        {"name": "Python", "category": "technique", "level": 4},
+        {"name": "React", "category": "technique", "level": 3},
+        {"name": "Leadership", "category": "soft_skill", "level": None},
     ],
     "experiences": [
         {
@@ -74,7 +74,7 @@ _PARSED_SECOND_CV = {
     "summary": None,
     "years_of_experience": 6,
     "skills": [
-        {"name": "Go", "category": "tech", "level": 2},
+        {"name": "Go", "category": "technique", "level": 2},
     ],
     "experiences": [
         {
@@ -227,7 +227,7 @@ class TestUpsertProfileFirstCall:
         skill = result.scalar_one_or_none()
 
         assert skill is not None
-        assert skill.category == "technique"  # "tech" normalisé par _normalize_category (S3-16)
+        assert skill.category == "technique"  # valeur française directe (vocabulaire actuel)
         assert skill.level == 4
 
 
@@ -352,8 +352,8 @@ class TestUpsertProfileMinimalData:
         parsed = {
             **_PARSED_MINIMAL,
             "skills": [
-                {"name": None, "category": "tech", "level": 3},  # name manquant → ignoré
-                {"name": "Python", "category": "tech", "level": 2},  # valide
+                {"name": None, "category": "technique", "level": 3},  # name manquant → ignoré
+                {"name": "Python", "category": "technique", "level": 2},  # valide
             ],
         }
         profile = await upsert_profile(db_session, test_user.id, test_cv.id, parsed)
@@ -387,3 +387,56 @@ class TestUpsertProfileMinimalData:
         )
         count = result.scalar_one()
         assert count == 0
+
+
+# ---------------------------------------------------------------------------
+# Tests — normalisation de l'ancien vocabulaire (rétrocompatibilité)
+# ---------------------------------------------------------------------------
+
+
+class TestLegacyCategoryNormalization:
+    async def test_legacy_category_tech_is_normalized(
+        self, db_session, test_user, test_cv
+    ):
+        """'tech' (ancien vocabulaire) doit être normalisé en 'technique'."""
+        parsed = {
+            **_PARSED_MINIMAL,
+            "skills": [{"name": "Python", "category": "tech", "level": 2}],
+        }
+        profile = await upsert_profile(db_session, test_user.id, test_cv.id, parsed)
+
+        result = await db_session.execute(
+            select(ProfileSkill).where(
+                ProfileSkill.profile_id == profile.id,
+                ProfileSkill.name == "Python",
+            )
+        )
+        skill = result.scalar_one_or_none()
+
+        assert skill is not None
+        assert skill.category == "technique", (
+            "'tech' doit être normalisé en 'technique' via CATEGORY_MAP"
+        )
+
+    async def test_legacy_category_soft_is_normalized(
+        self, db_session, test_user, test_cv
+    ):
+        """'soft' (ancien vocabulaire) doit être normalisé en 'soft_skill'."""
+        parsed = {
+            **_PARSED_MINIMAL,
+            "skills": [{"name": "Leadership", "category": "soft", "level": None}],
+        }
+        profile = await upsert_profile(db_session, test_user.id, test_cv.id, parsed)
+
+        result = await db_session.execute(
+            select(ProfileSkill).where(
+                ProfileSkill.profile_id == profile.id,
+                ProfileSkill.name == "Leadership",
+            )
+        )
+        skill = result.scalar_one_or_none()
+
+        assert skill is not None
+        assert skill.category == "soft_skill", (
+            "'soft' doit être normalisé en 'soft_skill' via CATEGORY_MAP"
+        )
