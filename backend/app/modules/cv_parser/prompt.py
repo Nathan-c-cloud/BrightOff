@@ -38,7 +38,7 @@ Retourne exactement ce schéma JSON :
   "skills": [
     {
       "name": "string — nom exact de la compétence (ex: 'Python', 'AWS', 'Gestion de projet')",
-      "category": "string — OBLIGATOIREMENT l'une de ces valeurs : 'tech' | 'soft' | 'tool' | 'language' | 'other'",
+      "category": "string — OBLIGATOIREMENT l'une de ces valeurs : 'technique' | 'outil' | 'soft_skill'",
       "level": "int 1 à 5 ou null — niveau si explicitement mentionné ou clairement déductible, sinon null"
     }
   ],
@@ -73,11 +73,9 @@ Retourne exactement ce schéma JSON :
 1. **JSON pur uniquement** — zéro texte autour. La réponse commence par { et finit par }.
 2. **Champs manquants → null** — jamais de chaîne vide "", jamais de champ absent.
 3. **Catégories de skills** :
-   - 'tech' : langages de programmation, frameworks, technologies (Python, React, SQL, AWS, Docker...)
-   - 'tool' : outils logiciels utilisés mais non programmés (Git, Jira, Figma, Excel, VS Code...)
-   - 'soft' : compétences comportementales (Communication, Leadership, Travail en équipe...)
-   - 'language' : langues parlées (Anglais, Espagnol...) — peut figurer EN PLUS du tableau languages
-   - 'other' : tout ce qui ne rentre pas dans les catégories ci-dessus
+   - 'technique' : langages de programmation, frameworks, technologies, librairies, bases de données, cloud (Python, React, SQL, AWS, Docker...)
+   - 'outil' : outils logiciels, méthodologies, plateformes (Git, Jira, Agile, Figma, Excel, Docker-compose...)
+   - 'soft_skill' : compétences comportementales (Communication, Leadership, Travail en équipe, Autonomie...)
 4. **Dates** : si seul le mois est connu → YYYY-MM-01. Si seule l'année → YYYY-01-01.
 5. **Langue du CV** : extraire dans la langue originale du document, sans traduire.
 6. **Aucune hallucination** : n'invente aucune information absente du CV. Si un champ n'est pas présent, mettre null.
@@ -102,14 +100,14 @@ Retourne exactement ce schéma JSON :
 Texte d'entrée : "Marie Dupont — Développeuse Web Junior. Compétences : HTML, CSS, JavaScript, React (débutante). Expérience : Stagiaire développeuse web chez Agence Pixel, juin 2023 - août 2023. Formation : BUT Informatique, IUT Lyon, 2021-2024. Langues : Français (natif), Anglais (B2)."
 
 Sortie attendue :
-{"is_cv": true, "title": "Développeuse Web Junior", "summary": null, "years_of_experience": 0, "skills": [{"name": "HTML", "category": "tech", "level": null}, {"name": "CSS", "category": "tech", "level": null}, {"name": "JavaScript", "category": "tech", "level": null}, {"name": "React", "category": "tech", "level": 1}], "experiences": [{"company": "Agence Pixel", "position": "Stagiaire développeuse web", "start_date": "2023-06-01", "end_date": "2023-08-01", "description": null}], "education": [{"school": "IUT Lyon", "degree": "BUT Informatique", "field": null, "start_date": "2021-01-01", "end_date": "2024-01-01"}], "languages": [{"name": "Français", "level": "Natif"}, {"name": "Anglais", "level": "B2"}]}
+{"is_cv": true, "title": "Développeuse Web Junior", "summary": null, "years_of_experience": 0, "skills": [{"name": "HTML", "category": "technique", "level": null}, {"name": "CSS", "category": "technique", "level": null}, {"name": "JavaScript", "category": "technique", "level": null}, {"name": "React", "category": "technique", "level": 1}], "experiences": [{"company": "Agence Pixel", "position": "Stagiaire développeuse web", "start_date": "2023-06-01", "end_date": "2023-08-01", "description": null}], "education": [{"school": "IUT Lyon", "degree": "BUT Informatique", "field": null, "start_date": "2021-01-01", "end_date": "2024-01-01"}], "languages": [{"name": "Français", "level": "Natif"}, {"name": "Anglais", "level": "B2"}]}
 
 **Exemple 2 — CV senior (8 ans d'expérience, nombreux skills)**
 
 Texte d'entrée : "Thomas Martin — Lead Développeur Fullstack. 8 ans d'expérience. Skills : Python (expert), Django, FastAPI, React, TypeScript, PostgreSQL, Docker, Kubernetes, AWS (avancé), Git, Jira. Leadership, mentorat. Expériences : Lead Dev Backend chez FinTech SA, 2020-présent. Développeur Senior chez WebAgency, 2017-2020. Développeur Junior chez StartupX, 2016-2017. Formation : Master Informatique, Université Paris-Saclay, 2014-2016. Licence Informatique, 2011-2014. Langues : Français (natif), Anglais (C1), Espagnol (B1)."
 
 Sortie attendue :
-{"is_cv": true, "title": "Lead Développeur Fullstack", "summary": null, "years_of_experience": 8, "skills": [{"name": "Python", "category": "tech", "level": 5}, {"name": "Django", "category": "tech", "level": null}, {"name": "FastAPI", "category": "tech", "level": null}, {"name": "React", "category": "tech", "level": null}, {"name": "TypeScript", "category": "tech", "level": null}, {"name": "PostgreSQL", "category": "tech", "level": null}, {"name": "Docker", "category": "tech", "level": null}, {"name": "Kubernetes", "category": "tech", "level": null}, {"name": "AWS", "category": "tech", "level": 4}, {"name": "Git", "category": "tool", "level": null}, {"name": "Jira", "category": "tool", "level": null}, {"name": "Leadership", "category": "soft", "level": null}, {"name": "Mentorat", "category": "soft", "level": null}], "experiences": [{"company": "FinTech SA", "position": "Lead Dev Backend", "start_date": "2020-01-01", "end_date": null, "description": null}, {"company": "WebAgency", "position": "Développeur Senior", "start_date": "2017-01-01", "end_date": "2020-01-01", "description": null}, {"company": "StartupX", "position": "Développeur Junior", "start_date": "2016-01-01", "end_date": "2017-01-01", "description": null}], "education": [{"school": "Université Paris-Saclay", "degree": "Master Informatique", "field": null, "start_date": "2014-01-01", "end_date": "2016-06-01"}, {"school": "Université Paris-Saclay", "degree": "Licence Informatique", "field": null, "start_date": "2011-01-01", "end_date": "2014-06-01"}], "languages": [{"name": "Français", "level": "Natif"}, {"name": "Anglais", "level": "C1"}, {"name": "Espagnol", "level": "B1"}]}
+{"is_cv": true, "title": "Lead Développeur Fullstack", "summary": null, "years_of_experience": 8, "skills": [{"name": "Python", "category": "technique", "level": 5}, {"name": "Django", "category": "technique", "level": null}, {"name": "FastAPI", "category": "technique", "level": null}, {"name": "React", "category": "technique", "level": null}, {"name": "TypeScript", "category": "technique", "level": null}, {"name": "PostgreSQL", "category": "technique", "level": null}, {"name": "Docker", "category": "technique", "level": null}, {"name": "Kubernetes", "category": "technique", "level": null}, {"name": "AWS", "category": "technique", "level": 4}, {"name": "Git", "category": "outil", "level": null}, {"name": "Jira", "category": "outil", "level": null}, {"name": "Leadership", "category": "soft_skill", "level": null}, {"name": "Mentorat", "category": "soft_skill", "level": null}], "experiences": [{"company": "FinTech SA", "position": "Lead Dev Backend", "start_date": "2020-01-01", "end_date": null, "description": null}, {"company": "WebAgency", "position": "Développeur Senior", "start_date": "2017-01-01", "end_date": "2020-01-01", "description": null}, {"company": "StartupX", "position": "Développeur Junior", "start_date": "2016-01-01", "end_date": "2017-01-01", "description": null}], "education": [{"school": "Université Paris-Saclay", "degree": "Master Informatique", "field": null, "start_date": "2014-01-01", "end_date": "2016-06-01"}, {"school": "Université Paris-Saclay", "degree": "Licence Informatique", "field": null, "start_date": "2011-01-01", "end_date": "2014-06-01"}], "languages": [{"name": "Français", "level": "Natif"}, {"name": "Anglais", "level": "C1"}, {"name": "Espagnol", "level": "B1"}]}
 
 ## CONTRAINTES STRICTES DE FORMAT
 

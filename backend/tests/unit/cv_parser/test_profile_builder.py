@@ -227,7 +227,7 @@ class TestUpsertProfileFirstCall:
         skill = result.scalar_one_or_none()
 
         assert skill is not None
-        assert skill.category == "tech"
+        assert skill.category == "technique"  # "tech" normalisé par _normalize_category (S3-16)
         assert skill.level == 4
 
 

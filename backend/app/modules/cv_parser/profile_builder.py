@@ -27,6 +27,29 @@ from app.modules.cv_parser.models import (
 
 log = logging.getLogger(__name__)
 
+# Mapping des valeurs produites par Claude vers le vocabulaire DB/API (Literal SkillCategory).
+# Filet de sécurité : si le prompt dérive ou si Claude génère une valeur inattendue, on normalise.
+_SKILL_CATEGORY_MAP = {
+    "tech": "technique",
+    "soft": "soft_skill",
+    "tool": "outil",
+    "language": "outil",      # "Anglais professionnel" classé en skill → outil métier ; la table languages reste source de vérité pour les langues parlées
+    "other": "technique",     # fallback conservateur
+    # Passthrough pour les valeurs déjà conformes (au cas où le prompt aurait déjà été mis à jour) :
+    "technique": "technique",
+    "soft_skill": "soft_skill",
+    "outil": "outil",
+}
+_DEFAULT_SKILL_CATEGORY = "technique"  # fallback ultime pour toute valeur inconnue
+
+
+def _normalize_category(raw: str | None) -> str:
+    """Normalise la catégorie de skill produite par Claude vers le Literal DB/API."""
+    normalized = _SKILL_CATEGORY_MAP.get(raw or "", _DEFAULT_SKILL_CATEGORY)
+    if normalized == _DEFAULT_SKILL_CATEGORY and raw not in _SKILL_CATEGORY_MAP:
+        log.warning("Catégorie de skill inconnue %r — fallback sur %r", raw, _DEFAULT_SKILL_CATEGORY)
+    return normalized
+
 
 # ---------------------------------------------------------------------------
 # Helpers de conversion de dates
@@ -121,15 +144,15 @@ async def upsert_profile(
 
     for skill in parsed.get("skills") or []:
         name = skill.get("name")
-        category = skill.get("category")
-        if not name or not category:
+        raw_category = skill.get("category")
+        if not name or not raw_category:
             log.warning("Skill ignoré (name ou category absent) : %r", skill)
             continue
         db.add(
             ProfileSkill(
                 profile_id=profile_id,
                 name=name,
-                category=category,
+                category=_normalize_category(raw_category),
                 level=skill.get("level"),
             )
         )
