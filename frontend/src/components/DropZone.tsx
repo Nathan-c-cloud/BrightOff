@@ -248,20 +248,12 @@ export function DropZone({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      className="dropzone-wrap"
       style={{
-        border: `2px dashed ${getBorderColor()}`,
-        borderRadius: "var(--radius-card)",
+        // Styles dynamiques uniquement — les styles statiques sont dans .dropzone-wrap (globals.css)
+        borderColor: getBorderColor(),
         background: getBackgroundColor(),
-        padding: "48px 32px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "16px",
         cursor: effectiveState === "uploading" ? "default" : "pointer",
-        transition: "border-color 0.15s ease, background-color 0.15s ease",
-        minHeight: "260px",
-        textAlign: "center",
       }}
     >
       {/* Input file visuellement masqué mais accessible */}
