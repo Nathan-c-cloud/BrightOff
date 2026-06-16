@@ -107,11 +107,16 @@ export function formatDuration(start: string, end: string | null): string {
  *
  * Règle : prend la première lettre du prénom et la première lettre du nom.
  * Si l'un est vide, prend les 2 premiers caractères du champ disponible.
- * Si les deux sont vides, retourne "?".
+ * Si les deux sont vides mais qu'un email est fourni, prend sa première lettre.
+ * Sinon retourne "?".
  */
-export function computeInitials(firstName: string, lastName: string): string {
-  const first = firstName.trim();
-  const last = lastName.trim();
+export function computeInitials(
+  firstName: string,
+  lastName: string,
+  email?: string,
+): string {
+  const first = (firstName || "").trim();
+  const last = (lastName || "").trim();
 
   if (first && last) {
     return `${first[0]}${last[0]}`.toUpperCase();
@@ -121,6 +126,12 @@ export function computeInitials(firstName: string, lastName: string): string {
   }
   if (last) {
     return last.slice(0, 2).toUpperCase();
+  }
+  if (email) {
+    const cleanedEmail = email.trim();
+    if (cleanedEmail.length > 0) {
+      return cleanedEmail[0].toUpperCase();
+    }
   }
   return "?";
 }

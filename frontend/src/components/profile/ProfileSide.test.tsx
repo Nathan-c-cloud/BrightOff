@@ -81,8 +81,22 @@ describe("ProfileSide", () => {
     expect(screen.getByText("MA")).toBeInTheDocument();
   });
 
-  it("renders_question_mark_when_both_names_are_empty", () => {
-    render(<ProfileSide {...defaultProps({ firstName: "", lastName: "" })} />);
+  it("renders_email_initial_when_both_names_are_empty", () => {
+    render(
+      <ProfileSide
+        {...defaultProps({ firstName: "", lastName: "", email: "nathan@example.com" })}
+      />
+    );
+    // Fallback email : premiere lettre majuscule
+    expect(screen.getByText("N")).toBeInTheDocument();
+  });
+
+  it("renders_question_mark_when_names_and_email_are_empty", () => {
+    render(
+      <ProfileSide
+        {...defaultProps({ firstName: "", lastName: "", email: "" })}
+      />
+    );
     expect(screen.getByText("?")).toBeInTheDocument();
   });
 

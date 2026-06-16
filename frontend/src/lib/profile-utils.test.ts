@@ -106,6 +106,18 @@ describe("computeInitials", () => {
   it("returns_question_mark_when_both_names_are_whitespace", () => {
     expect(computeInitials("   ", "   ")).toBe("?");
   });
+
+  it("returns_first_letter_of_email_uppercased_when_both_names_empty", () => {
+    expect(computeInitials("", "", "nathan@example.com")).toBe("N");
+  });
+
+  it("returns_question_mark_when_both_names_empty_and_email_empty", () => {
+    expect(computeInitials("", "", "")).toBe("?");
+  });
+
+  it("prioritises_first_name_over_email_when_first_name_is_present", () => {
+    expect(computeInitials("Nathan", "", "n@x.com")).toBe("NA");
+  });
 });
 
 // ---------------------------------------------------------------------------

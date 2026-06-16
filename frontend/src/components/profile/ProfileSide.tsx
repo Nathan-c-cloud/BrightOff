@@ -21,7 +21,7 @@ export function ProfileSide({
   email,
   onReupload,
 }: ProfileSideProps) {
-  const initials = computeInitials(firstName, lastName);
+  const initials = computeInitials(firstName, lastName, email);
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
   return (
