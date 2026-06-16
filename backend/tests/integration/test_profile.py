@@ -79,7 +79,7 @@ async def test_profile(db_session: AsyncSession, test_user: User) -> Profile:
         id=uuid.uuid4(),
         profile_id=profile.id,
         name="Python",
-        category="tech",
+        category="technique",
         level=4,
     )
     db_session.add(skill)
@@ -181,11 +181,12 @@ class TestGetProfile:
         assert data["id"] == str(test_profile.id)
         assert data["title"] == "Développeur Fullstack"
         assert data["summary"] == "Passionné par le cloud et les APIs."
-        assert data["years_of_experience"] == 3
+        # years_of_experience absent de la réponse depuis S3-16
+        assert "years_of_experience" not in data
         assert isinstance(data["skills"], list)
         assert len(data["skills"]) == 1
         assert data["skills"][0]["name"] == "Python"
-        assert data["skills"][0]["category"] == "tech"
+        assert data["skills"][0]["category"] == "technique"
         assert data["skills"][0]["level"] == 4
         assert isinstance(data["experiences"], list)
         assert isinstance(data["educations"], list)
@@ -214,11 +215,10 @@ class TestGetProfile:
 _FULL_PAYLOAD = {
     "title": "Cloud Engineer",
     "summary": "Architecte AWS passionné.",
-    "years_of_experience": 5,
     "skills": [
-        {"name": "Python", "category": "tech", "level": 5},
-        {"name": "Terraform", "category": "tool", "level": 3},
-        {"name": "Communication", "category": "soft", "level": None},
+        {"name": "Python", "category": "technique", "level": 5},
+        {"name": "Terraform", "category": "outil", "level": 3},
+        {"name": "Communication", "category": "soft_skill", "level": None},
     ],
     "experiences": [
         {
@@ -260,7 +260,8 @@ class TestPutProfile:
 
         assert data["title"] == "Cloud Engineer"
         assert data["summary"] == "Architecte AWS passionné."
-        assert data["years_of_experience"] == 5
+        # years_of_experience absent de la réponse depuis S3-16
+        assert "years_of_experience" not in data
 
     @pytest.mark.asyncio
     async def test_put_profile_replaces_skills(self, profile_client: AsyncClient):
@@ -355,7 +356,7 @@ class TestPutProfile:
         """skill.level=99 → 422 Unprocessable Entity."""
         payload = {
             **_FULL_PAYLOAD,
-            "skills": [{"name": "Python", "category": "tech", "level": 99}],
+            "skills": [{"name": "Python", "category": "technique", "level": 99}],
         }
 
         response = await profile_client.put("/api/v1/profile/me", json=payload)
@@ -368,7 +369,7 @@ class TestPutProfile:
         """skill.level=0 → 422 (level est 1-5)."""
         payload = {
             **_FULL_PAYLOAD,
-            "skills": [{"name": "Python", "category": "tech", "level": 0}],
+            "skills": [{"name": "Python", "category": "technique", "level": 0}],
         }
 
         response = await profile_client.put("/api/v1/profile/me", json=payload)
@@ -406,7 +407,6 @@ class TestPutProfile:
         payload = {
             "title": "Solo Dev",
             "summary": None,
-            "years_of_experience": None,
             "skills": [],
             "experiences": [],
             "educations": [],

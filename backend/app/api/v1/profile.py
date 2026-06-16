@@ -34,8 +34,9 @@ router = APIRouter(prefix="/profile", tags=["profile"])
 # Valeurs de level acceptées pour les langues (CECRL + niveaux courants)
 LANGUAGE_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2", "Natif", "Bilingue"}
 
-# Catégories de compétences — max 10 chars (contrainte BDD String(10))
-SkillCategory = Literal["tech", "soft", "tool", "language", "other"]
+# Catégories de compétences — valeurs françaises alignées avec le CV parser (S3-11).
+# "technique" et "outil" correspondent aux hard skills, "soft_skill" aux soft skills.
+SkillCategory = Literal["technique", "outil", "soft_skill"]
 
 _AUTH_RESPONSES = {401: {"description": "JWT manquant, expiré ou invalide"}}
 
@@ -132,7 +133,8 @@ class ProfileResponse(BaseModel):
     id: UUID
     title: str | None = None
     summary: str | None = None
-    years_of_experience: int | None = None
+    # years_of_experience intentionnellement absent de la réponse API (retiré en S3-16).
+    # Le champ reste en BDD — pas de migration Alembic.
     skills: list[SkillOut] = []
     experiences: list[ExperienceOut] = []
     educations: list[EducationOut] = []
@@ -145,7 +147,7 @@ class ProfileResponse(BaseModel):
 class ProfileUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=255)
     summary: str | None = None
-    years_of_experience: int | None = Field(default=None, ge=0, le=70)
+    # years_of_experience intentionnellement absent du payload PUT (retiré en S3-16).
     skills: list[SkillIn] = []
     experiences: list[ExperienceIn] = []
     educations: list[EducationIn] = []
@@ -162,7 +164,6 @@ def _profile_to_response(profile: Profile) -> ProfileResponse:
         id=profile.id,
         title=profile.title,
         summary=profile.summary,
-        years_of_experience=profile.years_of_experience,
         skills=[SkillOut.model_validate(s) for s in profile.skills],
         experiences=[ExperienceOut.model_validate(e) for e in profile.experiences],
         educations=[EducationOut.model_validate(ed) for ed in profile.educations],
@@ -251,10 +252,9 @@ async def update_my_profile(
             detail="Profile not found. Upload a CV first to create your profile.",
         )
 
-    # Mise à jour de l'identité
+    # Mise à jour de l'identité (years_of_experience conservé en BDD mais non exposé)
     profile.title = payload.title
     profile.summary = payload.summary
-    profile.years_of_experience = payload.years_of_experience
 
     # Remplacement des collections : vider puis re-insérer.
     # La cascade "all, delete-orphan" sur le relationship assure que les anciens
@@ -311,7 +311,6 @@ async def update_my_profile(
             "id",
             "title",
             "summary",
-            "years_of_experience",
             "updated_at",
             "skills",
             "experiences",
