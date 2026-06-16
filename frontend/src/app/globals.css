@@ -57,6 +57,24 @@
 }
 
 /* ======================================================
+   ANIMATIONS GLOBALES
+   Déclarées ici pour éviter la duplication dans les composants.
+   Règle : ne jamais re-déclarer @keyframes spin dans un <style> inline.
+   ====================================================== */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ======================================================
    TAILWIND v4 — @theme inline
    Expose les tokens CSS comme classes utilitaires Tailwind
    bg-primary, text-accent, border-border, etc.
@@ -449,6 +467,13 @@ body {
     padding: 40px 48px 72px;
   }
 
+  /* --- Landing : section wrapper du hero --- */
+  .hero-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
   /* --- Landing : Hero --- */
   .hero {
     display: grid;
@@ -553,6 +578,437 @@ body {
     border-top: 1px solid var(--color-border);
   }
 
+  /* --- Page Profil --- */
+
+  .page-wrap.page-wrap--wide {
+    max-width: 1600px;
+    padding: 32px 32px 64px;
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 768px) {
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ======================================================
+     RESPONSIVE — media queries structurantes
+     Ajoutées pour S3-RESPONSIVE. Approche : les breakpoints
+     structurants (layout, nav) vivent ici à côté des classes
+     qu'ils modifient. Les ajustements cosmétiques fins restent
+     en classes Tailwind dans le JSX.
+     Mobile ≤ 640px | Tablette md: ≤ 768px | Desktop lg: ≥ 1024px
+     ====================================================== */
+
+  /* --- NavPublic mobile : padding réduit, boutons plus compacts --- */
+  @media (max-width: 640px) {
+    .nav-public {
+      padding: 12px 16px;
+    }
+    .nav-public-actions {
+      gap: 8px;
+    }
+    .nav-public-actions .btn {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+  }
+
+  /* --- NavApp mobile : masquer les liens, préparer le drawer --- */
+  @media (max-width: 640px) {
+    .nav-app {
+      padding: 12px 16px;
+    }
+  }
+
+  /* Drawer mobile NavApp */
+  .nav-mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background: var(--color-primary);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 24px;
+    overflow-y: auto;
+  }
+
+  .nav-mobile-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(43, 58, 74, 0.4);
+    z-index: 299;
+  }
+
+  .nav-mobile-drawer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 32px;
+  }
+
+  .nav-mobile-drawer-link {
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+    font-size: 18px;
+    padding: 14px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    text-decoration: none;
+    display: block;
+    transition: color 0.15s;
+  }
+  .nav-mobile-drawer-link:hover,
+  .nav-mobile-drawer-link.active {
+    color: white;
+    text-decoration: none;
+  }
+
+  .nav-mobile-drawer-footer {
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .nav-mobile-drawer-logout {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 8px;
+  }
+  .nav-mobile-drawer-logout:hover {
+    color: white;
+  }
+
+  /* --- .page-wrap et .page-wrap--wide mobile --- */
+  @media (max-width: 640px) {
+    .page-wrap {
+      padding: 16px 16px 40px;
+    }
+    .page-wrap.page-wrap--wide {
+      padding: 16px 16px 40px;
+    }
+  }
+
+  /* --- .center-screen mobile (pages auth) --- */
+  @media (max-width: 640px) {
+    .center-screen {
+      padding: 20px 16px;
+      align-items: flex-start;
+    }
+  }
+
+  /* --- .center-card mobile (carte auth) --- */
+  .center-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    box-shadow: 0 4px 6px -1px rgba(43, 58, 74, 0.08), 0 2px 4px -1px rgba(43, 58, 74, 0.04);
+    padding: 40px 44px;
+    width: 100%;
+    max-width: 460px;
+  }
+  @media (max-width: 640px) {
+    .center-card {
+      padding: 28px 20px;
+      max-width: 100%;
+      border-radius: 10px;
+    }
+  }
+
+  /* --- .profile-main padding mobile --- */
+  @media (max-width: 640px) {
+    .profile-main {
+      padding: 20px 16px;
+    }
+    .profile-side {
+      padding: 20px 16px;
+    }
+  }
+
+  /* --- Dropzone mobile : padding réduit --- */
+  .dropzone-wrap {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-bg-card);
+    padding: 56px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    min-height: 260px;
+    text-align: center;
+  }
+  @media (max-width: 640px) {
+    .dropzone-wrap {
+      padding: 36px 20px;
+    }
+  }
+
+  /* --- Modale mobile : padding réduit --- */
+  @media (max-width: 640px) {
+    .modal-overlay {
+      padding: 16px;
+    }
+    .modal-box {
+      padding: 24px 20px;
+      max-width: calc(100vw - 32px);
+    }
+    .modal-actions {
+      flex-wrap: wrap;
+    }
+  }
+
+  /* Toast — positionnement fixé en coin bas-droit (desktop) */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    left: auto;
+    max-width: 340px;
+    z-index: 9999;
+  }
+
+  /* Toast mobile : coin bas-gauche, légèrement élargi */
+  @media (max-width: 640px) {
+    .toast-container {
+      bottom: 16px;
+      right: auto;
+      left: 16px;
+      max-width: calc(100vw - 32px);
+    }
+  }
+
+  /* --- Input inline compétences : pleine largeur en mobile --- */
+  .skill-input-inline {
+    width: 160px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  @media (max-width: 640px) {
+    .skill-input-inline {
+      width: 100%;
+    }
+  }
+
+  /* --- Titre "Mon Profil" : taille responsive --- */
+  .profile-page-title {
+    margin: 0 0 24px;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+  }
+  @media (max-width: 640px) {
+    .profile-page-title {
+      font-size: 22px;
+    }
+  }
+
+  .profile-side {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: var(--shadow-card);
+  }
+
+  .profile-side h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+  }
+
+  .profile-side .em {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .profile-main {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .profile-section {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .profile-section:last-of-type { border-bottom: none; }
+  .profile-section:first-of-type { padding-top: 0; }
+
+  .profile-section h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-secondary);
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .profile-section .body {
+    color: var(--color-text);
+  }
+  .profile-section .body p {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .profile-section .body p + p {
+    margin-top: 6px;
+  }
+
+  /* Ligne carte formation/expérience avec icône edit à droite */
+  .profile-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .profile-card + .profile-card {
+    border-top: 1px solid var(--color-border);
+  }
+  .profile-card-body {
+    flex: 1;
+  }
+  .profile-card-edit {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
+  }
+  .profile-card-edit:hover {
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  .skill-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .badge-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: var(--radius-badge);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--color-bg-card);
+    border: 1.5px dashed var(--color-primary);
+    color: var(--color-primary);
+    cursor: pointer;
+  }
+  .badge-add:hover {
+    background: var(--color-primary-light);
+  }
+
+  .badge-removable {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 6px 6px 12px;
+    border-radius: var(--radius-badge);
+    background: var(--color-primary-light);
+    color: var(--color-primary-text);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .badge-removable button {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(38, 128, 160, 0.15);
+    color: var(--color-primary-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .badge-removable button:hover {
+    background: rgba(38, 128, 160, 0.3);
+  }
+
+  /* Modale overlay + box */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(43, 58, 74, 0.45);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-box {
+    background: var(--color-bg-card);
+    border-radius: 14px;
+    box-shadow: 0 14px 40px rgba(43, 58, 74, 0.18);
+    padding: 32px 36px;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-box h2 {
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .modal-actions .btn-delete {
+    margin-left: auto;
+    color: var(--color-error);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: var(--radius-btn);
+    transition: background 0.12s;
+  }
+  .modal-actions .btn-delete:hover {
+    background: var(--color-error-bg);
+  }
+
   /* --- Badges --- */
   .badge {
     @apply inline-flex items-center;
@@ -585,6 +1041,92 @@ body {
   .badge-peach-dark {
     background: var(--color-warning);
     color: var(--color-warning-text);
+  }
+
+  /* --- Landing responsive (ajouté S3-RESPONSIVE scope étendu) --- */
+
+  /* Mobile ≤ 640px */
+  @media (max-width: 640px) {
+    /* Section wrapper du hero : padding latéral réduit */
+    .hero-section {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    /* Hero : padding vertical réduit */
+    .hero {
+      padding: 48px 0 64px;
+    }
+
+    /* H1 hero : 56px → 32px pour tenir sur 2 lignes max en 375px */
+    .hero h1 {
+      font-size: 32px;
+    }
+
+    /* Sous-titre hero */
+    .hero p.sub {
+      font-size: 16px;
+    }
+
+    /* CTA principal pleine largeur en mobile */
+    .hero .btn-lg {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* "Comment ça marche" : padding réduit */
+    .how {
+      padding: 48px 16px;
+    }
+
+    /* Cards : 3 colonnes → 1 colonne */
+    .how-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* Footer : padding réduit */
+    .footer {
+      padding: 24px 16px;
+    }
+  }
+
+  /* Tablette 641px – 1024px */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    /* Section wrapper du hero */
+    .hero-section {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+
+    /* Hero : padding vertical intermédiaire */
+    .hero {
+      padding: 60px 0 80px;
+    }
+
+    /* H1 hero : 56px → 42px */
+    .hero h1 {
+      font-size: 42px;
+    }
+
+    /* Sous-titre hero */
+    .hero p.sub {
+      font-size: 17px;
+    }
+
+    /* "Comment ça marche" : padding intermédiaire */
+    .how {
+      padding: 64px 24px;
+    }
+
+    /* Cards : 3 colonnes → 2 colonnes en tablette */
+    .how-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 28px 24px;
+    }
   }
 
 }

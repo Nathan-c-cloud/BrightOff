@@ -1,0 +1,55 @@
+meta {
+  name: 01 Upload CV - Happy Path
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/cvs/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:multipart-form {
+  file: @file({{cvHappyPath}})
+}
+
+script:post-response {
+  if (res.getStatus() === 201 && res.body.id) {
+    bru.setEnvVar("lastCvId", res.body.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  test("returns CV id (UUID)", function() {
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  });
+  test("parsing_status is parsing", function() {
+    expect(res.body.status).to.equal("parsing");
+  });
+  test("filename is preserved", function() {
+    expect(res.body.filename).to.contain("CV");
+  });
+}
+
+docs {
+  S3-10 — Upload happy path
+
+  Upload un vrai CV PDF de l'utilisateur.
+  Le fichier doit exister localement à l'emplacement indiqué.
+
+  Vérifications après upload OK :
+  - Réponse 201 + UUID + status="parsing"
+  - Fichier présent sur S3 : aws s3 ls s3://brightoff-dev-cvs/cvs/ --recursive
+  - Ligne en BDD : SELECT * FROM cvs WHERE id = '<uuid>'
+  - Log "trigger_parsing: STUB" dans docker logs brightoff-backend
+
+  Le cv_id est sauvegardé dans {{lastCvId}} pour les requêtes suivantes.
+}

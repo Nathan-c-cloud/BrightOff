@@ -1,0 +1,7 @@
+This is a plain text file renamed with a .pdf extension.
+It contains no PDF magic bytes (no "%PDF-" header).
+The S3-10 upload endpoint should reject this with HTTP 415 (Unsupported Media Type)
+because the magic bytes detection (via the `filetype` library) will not match PDF or DOCX.
+
+This file demonstrates that the filename extension is NOT used as the source of truth
+for file format validation — only the actual file content (magic bytes) matters.

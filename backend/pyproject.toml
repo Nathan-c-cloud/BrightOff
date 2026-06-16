@@ -26,6 +26,20 @@ ignore = []
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Ignore unused imports in __init__.py files
 "alembic/versions/*.py" = ["E501", "I001", "UP007", "UP035", "W291"]  # Auto-generated migrations
+# Le system prompt LLM et les tableaux Markdown dans le rapport contiennent des lignes
+# intentionnellement longues pour la lisibilité — E501 non pertinent ici.
+"scripts/benchmark_claude_cv.py" = ["E501"]
+# Le SYSTEM_PROMPT et les exemples JSON dans prompt.py sont portés verbatim depuis le benchmark
+# validé — les lignes longues sont intentionnelles et ne doivent pas être reformatées.
+"app/modules/cv_parser/prompt.py" = ["E501"]
+# Fixture PDF binaire dans une bytes string — la structure de l'objet 3 0 obj ne peut pas
+# être reformattée sans casser le fixture PDF parsé par pdfplumber.
+"tests/unit/cv_parser/test_extractors.py" = ["E501"]
+# Tests Claude/orchestration utilisent des nested `with patch(...)` pour l'isolation
+# explicite du contexte de mock — SIM117 propose de combiner mais ça réduit la lisibilité
+# (4+ mocks empilés sur une seule ligne).
+"tests/unit/cv_parser/test_claude_client.py" = ["SIM117"]
+"tests/unit/cv_parser/test_tasks_orchestration.py" = ["SIM117"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -1,11 +1,20 @@
 from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError  # noqa: N812
 
 from app.core.config import settings
 
-# Re-export JWTError so callers can import it from here without depending on jose directly
-__all__ = ["create_access_token", "create_refresh_token", "decode_token", "JWTError"]
+# Re-export JWTError so callers can import it from here without depending on PyJWT directly.
+# JWTError est un alias de jwt.exceptions.InvalidTokenError — superclasse de toutes les
+# exceptions PyJWT (ExpiredSignatureError, InvalidSignatureError, DecodeError, etc.).
+__all__ = [
+    "create_access_token",
+    "create_refresh_token",
+    "decode_token",
+    "JWTError",
+]
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
@@ -26,18 +35,25 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_refresh_token(data: dict) -> str:
-    """Encode a refresh token with a longer expiry.
+def create_refresh_token(data: dict) -> tuple[str, UUID, datetime]:
+    """Encode a refresh token with a longer expiry and a unique jti.
+
+    The jti (JWT ID) is persisted in the refresh_tokens table to enable
+    effective server-side rotation: on each /auth/refresh call, the jti is
+    verified, marked revoked, and a new token is issued atomically.
 
     Args:
         data: Claims to embed (must include "sub" with the user identifier).
 
     Returns:
-        Signed JWT string.
+        Tuple of (signed JWT string, jti UUID, expires_at datetime).
+        The caller must persist the jti and expires_at in the DB.
     """
-    expire = datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
-    payload = {**data, "type": "refresh", "exp": expire}
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    jti = uuid4()
+    expires_at = datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    payload = {**data, "type": "refresh", "jti": str(jti), "exp": expires_at}
+    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return token, jti, expires_at
 
 
 def decode_token(token: str) -> dict:

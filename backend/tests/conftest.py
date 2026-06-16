@@ -56,6 +56,7 @@ os.environ.setdefault("ENVIRONMENT", "dev")
 from collections.abc import AsyncGenerator  # noqa: E402
 from urllib.parse import urlparse, urlunparse  # noqa: E402
 
+import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
@@ -162,6 +163,21 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
 # ---------------------------------------------------------------------------
 # Fixture : client HTTP de test (scope=function)
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Reset le storage in-memory du rate limiter avant chaque test.
+
+    Sans ça, les requêtes faites depuis 127.0.0.1 dans un test précédent
+    consomment le quota et un test ultérieur prend un 429 inattendu.
+    Les tests dédiés au rate limit (test_auth_rate_limit.py) saturent
+    intentionnellement le quota dans une seule fonction — le reset au
+    début de la fonction suivante est exactement ce qu'on veut.
+    """
+    from app.core.rate_limiter import limiter
+    limiter.reset()
+    yield
 
 
 @pytest_asyncio.fixture

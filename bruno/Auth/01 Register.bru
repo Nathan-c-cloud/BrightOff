@@ -1,0 +1,41 @@
+meta {
+  name: 01 Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{email}}",
+    "password": "{{password}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201 && res.body.access_token) {
+    bru.setEnvVar("token", res.body.access_token);
+    bru.setEnvVar("refreshToken", res.body.refresh_token);
+  }
+}
+
+tests {
+  test("status is 201 (or 400 if user exists)", function() {
+    expect([201, 400]).to.include(res.getStatus());
+  });
+  test("returns access_token if 201", function() {
+    if (res.getStatus() === 201) {
+      expect(res.body.access_token).to.be.a("string");
+    }
+  });
+}
+
+docs {
+  Crée un compte utilisateur. Si l'email existe déjà, retourne 400.
+  Le token est automatiquement sauvegardé dans la variable d'environnement {{token}}.
+}

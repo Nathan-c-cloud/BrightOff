@@ -1,0 +1,30 @@
+meta {
+  name: 06 Get CV by ID (stub 501)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/cvs/{{lastCvId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("status is 501 (stub) — sera 200 après S3-13", function() {
+    expect([501, 200]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  STUB pour l'instant — sera implémenté en S3-13.
+
+  Utilisera {{lastCvId}} (auto-rempli par l'upload happy path).
+  Retournera les métadonnées + parsing_status du CV.
+
+  Servira au polling frontend pour afficher "Profil en construction" puis "Profil prêt".
+}

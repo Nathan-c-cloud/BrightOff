@@ -69,7 +69,7 @@ class ProfileSkill(UUIDMixin, TimestampMixin, Base):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    category: Mapped[str] = mapped_column(String(10), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
     level: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     profile: Mapped[Profile] = relationship(back_populates="skills")

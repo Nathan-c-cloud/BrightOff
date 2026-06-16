@@ -404,6 +404,236 @@ Sprint 1 (Fondations)
 
 ---
 
+## Tickets Sprint 3 — détail
+
+---
+
+### S3-16 — Refonte UX page profil (5 pts)
+
+**Date :** 2026-06-16
+**Priorité :** Haute
+**Dépend de :** S3-15 (livré — commit 7a93c46)
+**Estimation :** 5 story points
+
+---
+
+**User story**
+
+En tant qu'utilisateur connecté ayant uploadé un CV,
+je veux consulter et éditer mon profil sur une page visuellement conforme à la maquette de référence,
+afin d'avoir une interface claire, organisée et cohérente avec la charte graphique BrightOff.
+
+---
+
+**Contexte**
+
+S3-15 a livré les endpoints `GET /profile/me` et `PUT /profile/me` ainsi qu'une page `/profile` fonctionnelle, mais l'implémentation n'a pas respecté la maquette de référence (`assets/maquettes/brightoff-claude-design/page-profile.jsx`). L'écart constaté : layout 1 colonne centré (`max-w-3xl`), tous les champs en édition permanente (textarea/input visibles), pas d'avatar avec initiales, scroll infini. Ce ticket corrige l'intégralité du layout et des interactions.
+
+---
+
+**Description fonctionnelle**
+
+**Layout global**
+
+La page adopte un layout 2 colonnes pleine largeur (`profile-grid` : `320px 1fr`) sans conteneur `max-w-*` centré. Sur mobile (< 768px), passage en 1 colonne (aside au-dessus, main en dessous).
+
+**Aside gauche (`profile-side`)**
+
+- Avatar rond 88px, fond dégradé pêche→corail (`#FFC2AC → #FF705A`), initiales en blanc calculées depuis `first_name + last_name` de l'API (ex : "Thomas Dupont" → "TD")
+- Nom complet en `h2` (22px, bold 800)
+- Email en texte secondaire (`color: var(--text-2)`, 14px)
+- Le champ "Membre depuis…" est supprimé (non disponible dans l'API actuelle)
+- Bouton outlined bleu ciel ("Mettre à jour mon CV") pleine largeur, marginTop 18px — redirige vers `/onboarding`
+
+**Main droite (`profile-main`) — sections dans cet ordre**
+
+1. Hard skills
+2. Soft skills
+3. Formation
+4. Langues
+5. Expérience
+6. Bouton corail "Mettre à jour mon CV" en bas de la main — redirige vers `/onboarding`
+
+**Hard skills**
+
+Alimentées depuis `profile.skills` (catégories `technique` + `outil` fusionnées). Affichage : chips `badge-removable` avec bouton X. Bouton `badge-add` "+ Ajouter" qui se transforme en input inline (Enter valide, Escape annule, blur valide). À l'ajout, la compétence est créée avec catégorie `technique` par défaut (l'option `"outil"` n'est pas exposée en UI MVP). Le champ `level` n'est pas exposé en UI (reste en base, non affiché en MVP).
+
+**Soft skills**
+
+Même fonctionnement que les Hard skills, alimentées depuis `profile.skills` catégorie `soft_skill`. À l'ajout, catégorie `soft_skill`.
+
+**Formation**
+
+Affichage en liste (`.profile-section .body`). Pour chaque entrée : titre diplôme/domaine en gras, puis ligne secondaire `École · mois YYYY — mois YYYY · X an(s)`. La durée est calculée côté front depuis `start_date`/`end_date` (si `end_date` null : "en cours"). Icône ✏️ discrète sur **chaque `EducationCard`** (pas sur le `<h3>` de section) → ouvre la modale d'édition pour cette entrée. Bouton "+ Ajouter une formation" en bas de la liste → ouvre la modale en mode création.
+
+**Langues**
+
+Chips `badge-removable` (langue + niveau) avec bouton X. Bouton `badge-add` "+ Ajouter" → input inline avec champ nom de langue + select niveau (`A1 / A2 / B1 / B2 / C1 / C2 / Bilingue / Natif`). Enter ou blur valide.
+
+**Expérience**
+
+Même logique que Formation : titre poste en gras, ligne secondaire `Entreprise · mois YYYY — mois YYYY · X an(s)` (ou "en cours"). Icône ✏️ discrète sur **chaque `ExperienceCard`** (pas sur le `<h3>` de section) → modale d'édition. Bouton "+ Ajouter une expérience" → modale création.
+
+**Modales d'édition (Formation et Expérience)**
+
+Modale centrée avec fond overlay. Champs Formation : école, diplôme, domaine, date début, date fin (optionnel). Champs Expérience : entreprise, poste, date début, date fin (optionnel), description. Boutons "Enregistrer" (corail) et "Annuler". En mode édition : bouton "Supprimer" (rouge, discret). Validation Pydantic côté backend sur les dates.
+
+**Bouton "Mettre à jour mon CV" (×2)**
+
+Le bouton aside et le bouton bas-de-main redirigent vers `/onboarding`. Ce re-upload écrase le profil actuel (pas de merge intelligent en MVP — voir hors-scope).
+
+**Champs `title` et `summary`**
+
+Retirés de l'UI dans cette refonte (absents de la maquette de référence). Conservés en base et dans `ProfileResponse` / `ProfileUpdate` côté backend pour réintroduction future — aucune modification backend sur ces deux champs.
+
+**Profil inexistant (404)**
+
+Si `GET /profile/me` retourne 404 (utilisateur sans profil parsé) : afficher un écran dédié avec le message "Vous n'avez pas encore de profil. Uploadez votre CV pour commencer." et un bouton corail → `/onboarding`. Pas d'affichage d'une page profil partiellement vide.
+
+**Champ `years_of_experience`**
+
+Retiré de l'UI, retiré de la réponse `GET /profile/me` et du payload `PUT /profile/me`. Champ conservé en base sans migration pour éviter une migration cassante en cours de sprint (à planifier Sprint 4).
+
+---
+
+**Critères d'acceptation**
+
+- [ ] Layout 2 colonnes (`profile-grid`) pleine largeur, sans `max-w-*` centré
+- [ ] Sur mobile (< 768px), passage en 1 colonne — aside au-dessus, main en dessous
+- [ ] Aside : avatar 88px avec initiales du nom (dégradé pêche→corail), nom h2, email, sans "Membre depuis"
+- [ ] Aside : bouton outlined bleu ciel "Mettre à jour mon CV" → `/onboarding`
+- [ ] Ordre des sections main : Hard skills, Soft skills, Formation, Langues, Expérience, bouton corail
+- [ ] Hard skills : chips `badge-removable` avec X + bouton `badge-add` "+ Ajouter" → input inline (Enter/Escape/blur) — catégorie `technique` à l'ajout
+- [ ] Soft skills : même comportement que Hard skills — catégorie `soft_skill` à l'ajout
+- [ ] Langues : chips removables + input inline nom + select niveau A1/A2/B1/B2/C1/C2/Bilingue/Natif
+- [ ] Formation : affichage `**Diplôme**` + ligne secondaire `École · dates · durée calculée`
+- [ ] Formation : icône ✏️ sur chaque `EducationCard` (pas sur le h3) → modale d'édition, bouton "+ Ajouter une formation" en bas → modale création
+- [ ] Expérience : affichage `**Poste**` + ligne secondaire `Entreprise · dates · durée calculée`
+- [ ] Expérience : icône ✏️ sur chaque `ExperienceCard` (pas sur le h3) → modale d'édition, bouton "+ Ajouter une expérience" en bas → modale création
+- [ ] Durée calculée côté front : si `end_date` null → "en cours"
+- [ ] Bouton corail "Mettre à jour mon CV" en bas de la main → `/onboarding`
+- [ ] `years_of_experience` absent de la réponse API et de l'UI — champs `title` et `summary` absents de l'UI (conservés backend)
+- [ ] Backend : `Literal` category skills modifié → `Literal["technique", "outil", "soft_skill"]` ; tests `test_profile.py` adaptés
+- [ ] `GET /profile/me` 404 → écran dédié CTA "Uploadez votre CV" → `/onboarding` (pas de page profil vide)
+- [ ] `GET /profile/me` et `PUT /profile/me` mis à jour en conséquence
+- [ ] Tous les tests existants (≈ 218) passent après refonte — les composants remplacés ont leur test mis à jour
+
+---
+
+**Spec technique**
+
+Composants à créer ou refactorer :
+
+- `ProfilePage` : remplacer le layout 1 colonne par `profile-grid` CSS (classes maquette), supprimer `max-w-3xl` ; gérer l'état 404 → écran CTA `/onboarding`
+- `ProfileSide` : aside avec avatar initiales + email + bouton outlined (nouveau composant)
+- `SkillsSection` : chips `badge-removable` + `badge-add` + input inline, paramétré par `section: "hard" | "soft"` ; helper `splitSkillsBySection` retourne `{ hard, soft }`
+- `LanguagesSection` : chips removables + input inline avec select niveau (`A1/A2/B1/B2/C1/C2/Bilingue/Natif`)
+- `EducationSection` et `ExperienceSection` : affichage liste + icône ✏️ par carte + bouton "+ Ajouter" en bas de liste
+- `ProfileFormModal` : modale générique réutilisable pour Formation et Expérience (mode création / mode édition)
+- `formatDuration(start, end)` et `formatRange(start, end)` : utilitaires front calculant la durée et la plage depuis deux strings ISO
+
+Composants à supprimer (remplacés) : `ProfileIdentitySection`, `ProfileSkillsSection` dans leur forme actuelle.
+
+Backend (`backend/app/api/v1/profile.py` ou `backend/app/modules/profile/schemas.py`) :
+
+- Modifier `Literal` category skills : remplacer `Literal["tech", "soft", "tool", "language", "other"]` par `Literal["technique", "outil", "soft_skill"]` dans `ProfileSkillCreate` / `ProfileSkillResponse`
+- Retirer `years_of_experience` du schéma Pydantic `ProfileResponse` et `ProfileUpdate`
+- Conserver `title` et `summary` en backend — ne pas les toucher
+- Adapter les assertions `test_profile.py` : `"tech"` → `"technique"`, `"soft"` → `"soft_skill"`
+
+Tests à mettre à jour : composants profil renommés ou recréés → tests unitaires Vitest à refactorer en cohérence.
+
+---
+
+**Hors scope (à planifier ultérieurement)**
+
+- Merge intelligent post re-upload CV → Sprint 4+ (déjà au backlog post-MVP `docs/backlog.md`)
+- Migration drop colonne `years_of_experience` en base → à planifier Sprint 4 via Alembic
+- Édition du niveau de compétence (champ `level`) → à valider en Sprint 4 ou 5 selon pertinence UX
+
+---
+
+### S3-RESPONSIVE — Responsive des pages connectées (5 pts)
+
+**Date :** 2026-06-16
+**Priorité :** Haute
+**Dépend de :** S3-12 (livré), S3-14 (livré), S3-16 (livré)
+**Estimation :** 5 story points
+
+---
+
+**User story**
+
+En tant qu'utilisateur connecté sur mobile ou tablette,
+je veux que les pages `/login`, `/onboarding`, `/dashboard` et `/profile` s'adaptent correctement à mon écran,
+afin de pouvoir utiliser BrightOff depuis n'importe quel appareil sans que l'interface déborde ou soit inutilisable.
+
+---
+
+**Description fonctionnelle**
+
+Ce ticket rend responsive les 4 pages de l'application connectée. La spec technique complète (comportements par breakpoint, plan d'implémentation, composants à modifier) est documentée dans `docs/architecture-s3-responsive.md`.
+
+**Breakpoints retenus (paliers Tailwind standards) :**
+- Mobile : 0 — 640px (défaut, pas de préfixe)
+- Tablette : 641px — 1024px (`md:`)
+- Desktop : 1025px et + (`lg:`)
+
+**NavApp — burger menu** : les liens de navigation sont masqués en mobile (`hidden md:flex`) et remplacés par un bouton burger. Au clic, un drawer pleine hauteur s'ouvre (fond bleu ciel, sans librairie externe). La cloche de notification reste dans la barre principale à côté du burger (jamais dans le drawer). Fermeture par Escape ou clic sur l'overlay.
+
+**NavPublic** : les 2 boutons ("Connexion" + "S'inscrire") restent visibles en mobile. Seuls le padding et la taille de police sont réduits pour tenir sur l'écran.
+
+**Page `/login`** : `AuthLayout` refactoré — les styles inline (`padding`, `maxWidth`) sont remplacés par des classes CSS dans `globals.css`. La carte `.center-card` passe pleine largeur en mobile avec un padding réduit. Formulaire prénom/nom en 1 colonne (au lieu de 2) sur mobile.
+
+**Page `/onboarding`** : paddings de la dropzone réduits en mobile. Boutons d'action en bas de dropzone empilés verticalement sur mobile (côte à côte sur tablette et desktop).
+
+**Page `/dashboard`** : `CvStatusBanner` pleine largeur. Toast en coin bas-gauche avec légère extension de largeur sur mobile (cohérence avec le comportement desktop).
+
+**Page `/profile`** : le layout `profile-grid` passe en 1 colonne sous 768px (aside au-dessus, main en dessous — déjà en place dans `globals.css`). Modales `ProfileFormModal` scrollables et non débordantes sur mobile (padding horizontal réduit). Input inline ajout compétence passe en `width: 100%` sur mobile (au lieu de 140px fixe).
+
+---
+
+**Critères d'acceptation**
+
+- [ ] Tests visuels manuels sur 3 viewports (375px mobile, 768px tablette, 1280px desktop) validés sur les 4 pages : `/login`, `/onboarding`, `/dashboard`, `/profile`
+- [ ] NavApp : burger menu visible en mobile, liens de navigation masqués (`hidden md:flex`), drawer fond bleu ciel s'ouvre et se ferme correctement
+- [ ] NavApp drawer : Escape ferme le drawer, clic sur l'overlay ferme le drawer, focus revient au bouton burger à la fermeture
+- [ ] NavApp mobile : cloche de notification visible dans la barre principale (à côté du burger), jamais dans le drawer
+- [ ] NavPublic : 2 boutons ("Connexion" + "S'inscrire") présents en mobile, padding et taille réduits, aucun débordement
+- [ ] `AuthLayout` : styles inline supprimés et remplacés par classes CSS dans `globals.css` (pas de `!important`)
+- [ ] Page `/login` : carte pleine largeur avec padding réduit sur mobile, formulaire prénom/nom en 1 colonne sur mobile
+- [ ] Page `/onboarding` : boutons d'action empilés verticalement sur mobile
+- [ ] Page `/dashboard` : toast positionné en coin bas-gauche sur mobile, légèrement élargi
+- [ ] Page `/profile` : layout 1 colonne en mobile (aside au-dessus, main en dessous), `ProfileFormModal` scrollable et non débordante, input ajout compétence `width: 100%` en mobile
+- [ ] Tous les tests existants (388 au moment du ticket) restent verts après les modifications
+
+---
+
+**Spec technique**
+
+Voir `docs/architecture-s3-responsive.md` pour le détail complet :
+- §1 : breakpoints et règle Tailwind vs CSS custom
+- §2 : comportement par page et par breakpoint (tableaux détaillés)
+- §3 : implémentation burger NavApp et NavPublic
+- §4 : quick wins déjà en place
+- §5 : plan d'implémentation en 7 étapes (étape 8 landing exclue)
+- §6 : périmètre des tests
+- §7 : risques et points d'attention (iOS Safari, `page-wrap--wide`, input inline)
+- §9 : arbitrages validés (Q1-Q7)
+
+Fichiers principaux à modifier : `globals.css`, `NavApp.tsx`, `NavPublic.tsx`, `(auth)/layout.tsx`, `onboarding/page.tsx`, `DashboardClient.tsx`.
+
+---
+
+**Hors scope (à planifier ultérieurement)**
+
+- Landing `/` → responsive prévu Sprint 7 (roadmap-mvp.md §Sprint 7)
+- Composants détail offre (`/offers/{id}`), candidatures, settings, signup form → tickets non encore créés
+- Tests visuels automatisés (Playwright `page.setViewportSize()`) → backlog post-MVP
+- Focus trap Tab cycle complet dans le drawer → backlog post-MVP
+
+---
+
 ## Mises à jour
 
 **Roadmap v2 — 2026-05-01**

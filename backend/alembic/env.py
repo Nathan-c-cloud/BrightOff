@@ -11,6 +11,7 @@ from app.core.config import settings
 
 # Import all models so Alembic can detect them
 from app.modules.auth import models as auth_models  # noqa: F401, E402
+from app.modules.auth import refresh_token_model as auth_refresh_token_model  # noqa: F401, E402
 from app.modules.cv_parser import models as cv_parser_models  # noqa: F401, E402
 from app.modules.gap_analysis import models as gap_analysis_models  # noqa: F401, E402
 from app.modules.matching import models as matching_models  # noqa: F401, E402

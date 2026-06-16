@@ -56,17 +56,59 @@ function BellIcon() {
   );
 }
 
+/** Icône hamburger (3 traits) */
+function HamburgerIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
+/** Icône croix (fermeture drawer) */
+function CloseIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
 /**
  * NavApp — header de l'application connectée (dashboard, profile, etc.).
  *
  * Fond bleu ciel (--color-primary), texte blanc.
- * Contient : Logo white | liens de navigation | cloche notif + avatar avec dropdown.
+ * Desktop : Logo white | liens de navigation | cloche notif + avatar avec dropdown.
+ * Mobile (< 640px) : Logo | Cloche | Burger → drawer pleine hauteur fond bleu ciel.
  *
- * Le dropdown utilisateur est géré par state local + fermeture sur clic extérieur
- * (mousedown sur document) et touche Escape. Accessible via ARIA menu pattern.
- *
- * Utilise next/link (App Router Next.js 16) — className est passé directement
- * au <a> sous-jacent (comportement supporté depuis v13).
+ * Drawer mobile :
+ * - Ouvert/fermé par state mobileMenuOpen
+ * - Fermé sur Escape ou clic overlay
+ * - Focus revient au bouton burger à la fermeture
+ * - La cloche reste dans la barre principale (jamais dans le drawer)
  */
 export function NavApp({
   links = DEFAULT_LINKS,
@@ -77,9 +119,11 @@ export function NavApp({
   unreadNotifications = 0,
 }: NavAppProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMetaRef = useRef<HTMLDivElement>(null);
+  const burgerRef = useRef<HTMLButtonElement>(null);
 
-  // Fermeture dropdown au clic en dehors du composant
+  // Fermeture dropdown utilisateur au clic en dehors du composant
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -107,84 +151,197 @@ export function NavApp({
     };
   }, [menuOpen]);
 
+  // Fermeture drawer mobile sur Escape
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+        burgerRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
+
+  // Bloquer le scroll du body quand le drawer est ouvert
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   const notifLabel =
     unreadNotifications > 0
       ? `${unreadNotifications} notification${unreadNotifications > 1 ? "s" : ""} non lue${unreadNotifications > 1 ? "s" : ""}`
       : "Notifications";
 
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+    burgerRef.current?.focus();
+  }
+
   return (
-    <header className="nav-app">
-      {/* Gauche : Logo + liens de navigation */}
-      <div className="nav-app-left">
-        <Link href="/dashboard" aria-label="BrightOff — retour au dashboard">
-          <Logo variant="white" size={120} />
-        </Link>
-        <nav className="nav-links" aria-label="Navigation principale">
-          {links.map((link) => (
-            <Link
-              key={link.id}
-              href={link.href}
-              className={`nav-link${activeLinkId === link.id ? " active" : ""}`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-
-      {/* Droite : cloche + avatar utilisateur */}
-      <div className="nav-right">
-        {/* Cloche notifications — clic sans action pour S3-03 (panel prévu sprint ultérieur) */}
-        <button
-          className="bell-btn"
-          aria-label={notifLabel}
-          type="button"
-        >
-          <BellIcon />
-          {unreadNotifications > 0 && (
-            <span className="bell-badge" aria-hidden>
-              {unreadNotifications}
-            </span>
-          )}
-        </button>
-
-        {/* Avatar + dropdown utilisateur */}
-        <div
-          ref={userMetaRef}
-          className="user-meta"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          role="button"
-          tabIndex={0}
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setMenuOpen((prev) => !prev);
-            }
-          }}
-        >
-          <Avatar initials={userInitials} size="sm" />
-          <span className="user-name">{userName}</span>
-
-          {menuOpen && (
-            <div className="user-menu">
-              <button
-                className="user-menu-item"
-                type="button"
-                onClick={(e) => {
-                  // Stopper la propagation pour éviter le re-toggle du parent
-                  e.stopPropagation();
-                  setMenuOpen(false);
-                  onLogout();
-                }}
+    <>
+      <header className="nav-app">
+        {/* Gauche : Logo + liens de navigation (desktop) */}
+        <div className="nav-app-left">
+          <Link href="/dashboard" aria-label="BrightOff — retour au dashboard">
+            <Logo variant="white" size={120} />
+          </Link>
+          {/* Liens masqués en mobile, visibles en tablette/desktop */}
+          <nav className="nav-links hidden md:flex" aria-label="Navigation principale">
+            {links.map((link) => (
+              <Link
+                key={link.id}
+                href={link.href}
+                className={`nav-link${activeLinkId === link.id ? " active" : ""}`}
               >
-                Se déconnecter
-              </button>
-            </div>
-          )}
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
-      </div>
-    </header>
+
+        {/* Droite : cloche + avatar (desktop) / cloche + burger (mobile) */}
+        <div className="nav-right">
+          {/* Cloche — toujours visible dans la barre, y compris en mobile */}
+          <button
+            className="bell-btn"
+            aria-label={notifLabel}
+            type="button"
+          >
+            <BellIcon />
+            {unreadNotifications > 0 && (
+              <span className="bell-badge" aria-hidden>
+                {unreadNotifications}
+              </span>
+            )}
+          </button>
+
+          {/* Avatar + dropdown utilisateur — visible en tablette/desktop uniquement */}
+          <div
+            ref={userMetaRef}
+            className="user-meta hidden md:flex"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            role="button"
+            tabIndex={0}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setMenuOpen((prev) => !prev);
+              }
+            }}
+          >
+            <Avatar initials={userInitials} size="sm" />
+            <span className="user-name">{userName}</span>
+
+            {menuOpen && (
+              <div className="user-menu">
+                <button
+                  className="user-menu-item"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onLogout();
+                  }}
+                >
+                  Se déconnecter
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Bouton burger — visible uniquement en mobile */}
+          <button
+            ref={burgerRef}
+            type="button"
+            className="bell-btn block md:hidden"
+            aria-expanded={mobileMenuOpen}
+            aria-label="Menu de navigation"
+            onClick={() => setMobileMenuOpen((o) => !o)}
+          >
+            {mobileMenuOpen ? <CloseIcon /> : <HamburgerIcon />}
+          </button>
+        </div>
+      </header>
+
+      {/* Overlay semi-transparent — ferme le drawer au clic */}
+      {mobileMenuOpen && (
+        <div
+          className="nav-mobile-drawer-overlay"
+          aria-hidden="true"
+          onClick={closeMobileMenu}
+        />
+      )}
+
+      {/* Drawer mobile — pleine hauteur, fond bleu ciel */}
+      {mobileMenuOpen && (
+        <div
+          className="nav-mobile-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu de navigation"
+        >
+          {/* En-tête du drawer : logo + bouton fermer */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Logo variant="white" size={100} />
+            <button
+              type="button"
+              className="bell-btn"
+              aria-label="Fermer le menu"
+              onClick={closeMobileMenu}
+            >
+              <CloseIcon />
+            </button>
+          </div>
+
+          {/* Liens de navigation */}
+          <nav
+            className="nav-mobile-drawer-links"
+            aria-label="Navigation principale"
+          >
+            {links.map((link) => (
+              <Link
+                key={link.id}
+                href={link.href}
+                className={`nav-mobile-drawer-link${activeLinkId === link.id ? " active" : ""}`}
+                onClick={closeMobileMenu}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Pied du drawer : info utilisateur + déconnexion */}
+          <div className="nav-mobile-drawer-footer">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <Avatar initials={userInitials} size="sm" />
+              <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{userName}</span>
+            </div>
+            <button
+              type="button"
+              className="nav-mobile-drawer-logout btn"
+              onClick={() => {
+                closeMobileMenu();
+                onLogout();
+              }}
+            >
+              Se déconnecter
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
