@@ -40,8 +40,10 @@ class TestBuildUserMessage:
         result = build_user_message(cv_text)
 
         assert cv_text in result
-        # Le texte court ne doit pas être altéré
-        assert result.endswith(cv_text)
+        # Le texte court doit être présent intégralement, encadré par les balises XML anti-injection
+        assert "<cv_content>" in result
+        assert "</cv_content>" in result
+        assert f"<cv_content>\n{cv_text}\n</cv_content>" in result
 
     def test_build_user_message_text_exactly_at_limit_not_truncated(self):
         cv_text = "A" * MAX_TEXT_CHARS
