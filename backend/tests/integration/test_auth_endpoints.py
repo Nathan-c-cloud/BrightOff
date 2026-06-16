@@ -532,11 +532,11 @@ class TestRefresh:
     async def test_refresh_expired_refresh_token_returns_401(self, client, db_session):
         """Un refresh token expiré doit retourner 401.
 
-        jose lève JWTError sur un token dont le claim 'exp' est dépassé.
+        PyJWT lève InvalidTokenError sur un token dont le claim 'exp' est dépassé.
         """
         from datetime import datetime
 
-        from jose import jwt as jose_jwt
+        import jwt as jose_jwt
 
         # Construire manuellement un refresh token expiré (sans jti en base —
         # decode_token() lèvera JWTError sur l'expiration avant de vérifier le jti)
@@ -562,7 +562,7 @@ class TestRefresh:
     @pytest.mark.asyncio
     async def test_refresh_token_without_jti_returns_401(self, client, db_session):
         """Un refresh token sans claim jti (ancien format pré-rotation) doit retourner 401."""
-        from jose import jwt as jose_jwt
+        import jwt as jose_jwt
 
         # Token valide mais sans jti — ne peut pas être vérifié en base
         payload_no_jti = {

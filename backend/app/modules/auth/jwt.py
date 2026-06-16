@@ -1,11 +1,14 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError  # noqa: N812
 
 from app.core.config import settings
 
-# Re-export JWTError so callers can import it from here without depending on jose directly
+# Re-export JWTError so callers can import it from here without depending on PyJWT directly.
+# JWTError est un alias de jwt.exceptions.InvalidTokenError — superclasse de toutes les
+# exceptions PyJWT (ExpiredSignatureError, InvalidSignatureError, DecodeError, etc.).
 __all__ = [
     "create_access_token",
     "create_refresh_token",

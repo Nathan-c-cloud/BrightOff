@@ -141,7 +141,7 @@ class TestCreateAccessToken:
         token = create_access_token(data={"sub": "user@example.com"})
         payload = decode_token(token)
 
-        # jose retourne exp sous forme de timestamp entier
+        # PyJWT retourne exp sous forme de timestamp entier
         exp = payload["exp"]
         assert exp > datetime.now(tz=UTC).timestamp()
 

@@ -4,7 +4,7 @@ Vérifie que :
 - Un refresh token issu de /login est utilisable une seule fois (/refresh).
 - Après rotation, l'ancien token retourne 401.
 - Après /logout, le refresh token est révoqué.
-- Un token expiré retourne 401 (expiration détectée côté JWT par jose).
+- Un token expiré retourne 401 (expiration détectée côté JWT par PyJWT).
 - Un token sans jti (format pré-rotation) est rejeté.
 
 Prérequis :
@@ -17,7 +17,7 @@ Exécution :
 from datetime import UTC, datetime
 
 import pytest
-from jose import jwt as jose_jwt
+import jwt as jose_jwt
 
 from app.core.config import settings
 
@@ -126,7 +126,7 @@ class TestRefreshRotation:
     async def test_expired_refresh_token_returns_401(self, client, db_session):
         """Un refresh token dont le claim exp est dépassé doit retourner 401.
 
-        jose lève JWTError avant même la vérification du jti en base.
+        PyJWT lève InvalidTokenError avant même la vérification du jti en base.
         """
         expired_payload = {
             "sub": "expiredrotation@example.com",
