@@ -262,7 +262,7 @@ async def upload_cv(
     await db.flush()  # persiste en BDD sans commit (rollback encore possible)
 
     # Étape 4 : upload S3 via thread pool (boto3 est synchrone)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     s3_success = False
     try:
         await loop.run_in_executor(

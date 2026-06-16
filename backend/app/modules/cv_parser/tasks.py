@@ -73,7 +73,7 @@ async def trigger_parsing(cv_id: uuid.UUID) -> None:
 
             # --- Étape 3 : download S3 ---
             s3_client = get_s3_client()
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             content: bytes = await loop.run_in_executor(
                 None,
