@@ -319,12 +319,15 @@ export function ProfileFormModal(props: ProfileFormModalProps) {
   const previousFocusRef = useRef<Element | null>(null);
   const titleId = "profile-modal-title";
 
-  // Stocker l'element actif avant montage pour le restaurer a la fermeture
+  // Stocker l'element actif avant montage pour le restaurer a la fermeture.
+  // On vérifie aussi document.body.contains() pour ne pas tenter de focus
+  // sur un element qui aurait été retiré du DOM entre-temps.
   useEffect(() => {
     previousFocusRef.current = document.activeElement;
     return () => {
-      if (previousFocusRef.current instanceof HTMLElement) {
-        previousFocusRef.current.focus();
+      const prev = previousFocusRef.current;
+      if (prev instanceof HTMLElement && document.body.contains(prev)) {
+        prev.focus();
       }
     };
   }, []);
