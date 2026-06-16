@@ -1,24 +1,19 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { NavApp } from "@/components/ui";
 import { CvStatusBanner } from "@/components/CvStatusBanner";
 import { Toast } from "@/components/Toast";
 import { useLatestCvPolling } from "@/hooks/useLatestCvPolling";
+import { useToastQueue } from "@/hooks/useToastQueue";
 import type { CvStatusResponse } from "@/lib/api-cvs";
 
 interface DashboardClientProps {
   userName: string;
   userInitials: string;
 }
-
-type ToastState = {
-  message: string;
-  variant: "success" | "error";
-  onClick?: () => void;
-} | null;
 
 /**
  * DashboardClient — partie interactive du dashboard.
@@ -38,39 +33,25 @@ export default function DashboardClient({ userName, userInitials }: DashboardCli
 
   const accessToken = session?.backendToken ?? null;
 
-  const [toast, setToast] = useState<ToastState>(null);
+  const { current: toast, enqueue, close } = useToastQueue();
 
   const handleReady = useCallback(
     (_cv: CvStatusResponse) => {
-      setToast({
-        message: "Ton profil est prêt !",
-        variant: "success",
-        onClick: () => {
-          setToast(null);
-          router.push("/profile");
-        },
-      });
+      enqueue("Ton profil est prêt !", "success");
     },
-    [router]
+    [enqueue]
   );
 
   const handleFailed = useCallback(() => {
-    setToast({
-      message: "L'analyse a échoué",
-      variant: "error",
-      onClick: () => {
-        setToast(null);
-        router.push("/onboarding");
-      },
-    });
-  }, [router]);
+    enqueue("L'analyse a échoué", "error");
+  }, [enqueue]);
 
   const handleTimeout = useCallback(() => {
-    setToast({
-      message: "L'analyse prend plus longtemps que prévu. Revenez dans quelques minutes.",
-      variant: "error",
-    });
-  }, []);
+    enqueue(
+      "L'analyse prend plus longtemps que prévu. Revenez dans quelques minutes.",
+      "error"
+    );
+  }, [enqueue]);
 
   const { state } = useLatestCvPolling({
     accessToken,
@@ -89,13 +70,6 @@ export default function DashboardClient({ userName, userInitials }: DashboardCli
 
   return (
     <>
-      {/* Animation spinner — partagée avec onboarding */}
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-
       <NavApp
         userName={userName}
         userInitials={userInitials}
@@ -125,8 +99,14 @@ export default function DashboardClient({ userName, userInitials }: DashboardCli
         <Toast
           message={toast.message}
           variant={toast.variant}
-          onClick={toast.onClick}
-          onClose={() => setToast(null)}
+          onClick={
+            toast.variant === "success"
+              ? () => { close(); router.push("/profile"); }
+              : toast.variant === "error"
+              ? () => { close(); router.push("/onboarding"); }
+              : undefined
+          }
+          onClose={close}
         />
       )}
     </>

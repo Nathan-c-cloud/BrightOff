@@ -20,6 +20,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { NavApp } from "@/components/ui/NavApp";
 import { Toast } from "@/components/Toast";
+import { useToastQueue } from "@/hooks/useToastQueue";
 import { ProfileSide } from "@/components/profile/ProfileSide";
 import { SkillsSection } from "@/components/profile/SkillsSection";
 import { LanguagesSection } from "@/components/profile/LanguagesSection";
@@ -49,11 +50,6 @@ import {
 // ---------------------------------------------------------------------------
 // Types locaux
 // ---------------------------------------------------------------------------
-
-type ToastState = {
-  message: string;
-  variant: "success" | "error";
-} | null;
 
 type ModalState =
   | { type: "education"; mode: "create" }
@@ -90,7 +86,7 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<ToastState>(null);
+  const { current: toast, enqueue, close: closeToast } = useToastQueue();
   const [modal, setModal] = useState<ModalState | null>(null);
   const [modalSaving, setModalSaving] = useState(false);
 
@@ -119,10 +115,7 @@ export default function ProfilePage() {
           setNotFound(true);
           return;
         }
-        setToast({
-          message: "Impossible de charger votre profil. Reessayez.",
-          variant: "error",
-        });
+        enqueue("Impossible de charger votre profil. Reessayez.", "error");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -171,15 +164,12 @@ export default function ProfilePage() {
         setProfileData(updated);
       } catch {
         setProfileData(previous);
-        setToast({
-          message: "Impossible de sauvegarder. Reessayez.",
-          variant: "error",
-        });
+        enqueue("Impossible de sauvegarder. Reessayez.", "error");
       } finally {
         mutating.current = false;
       }
     },
-    [profileData, putProfile]
+    [profileData, putProfile, enqueue]
   );
 
   const handleSkillRemove = useCallback(
@@ -199,15 +189,12 @@ export default function ProfilePage() {
         setProfileData(updated);
       } catch {
         setProfileData(previous);
-        setToast({
-          message: "Impossible de sauvegarder. Reessayez.",
-          variant: "error",
-        });
+        enqueue("Impossible de sauvegarder. Reessayez.", "error");
       } finally {
         mutating.current = false;
       }
     },
-    [profileData, putProfile]
+    [profileData, putProfile, enqueue]
   );
 
   // ---------------------------------------------------------------------------
@@ -232,15 +219,12 @@ export default function ProfilePage() {
         setProfileData(updated);
       } catch {
         setProfileData(previous);
-        setToast({
-          message: "Impossible de sauvegarder. Reessayez.",
-          variant: "error",
-        });
+        enqueue("Impossible de sauvegarder. Reessayez.", "error");
       } finally {
         mutating.current = false;
       }
     },
-    [profileData, putProfile]
+    [profileData, putProfile, enqueue]
   );
 
   const handleLanguageRemove = useCallback(
@@ -260,15 +244,12 @@ export default function ProfilePage() {
         setProfileData(updated);
       } catch {
         setProfileData(previous);
-        setToast({
-          message: "Impossible de sauvegarder. Reessayez.",
-          variant: "error",
-        });
+        enqueue("Impossible de sauvegarder. Reessayez.", "error");
       } finally {
         mutating.current = false;
       }
     },
-    [profileData, putProfile]
+    [profileData, putProfile, enqueue]
   );
 
   // ---------------------------------------------------------------------------
@@ -278,7 +259,7 @@ export default function ProfilePage() {
   const handleEducationSave = useCallback(
     async (data: EducationPayload) => {
       if (!profileData || mutating.current) {
-        setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+        enqueue("Une operation est en cours, reessayez dans un instant.", "error");
         return;
       }
       mutating.current = true;
@@ -300,23 +281,20 @@ export default function ProfilePage() {
         setProfileData(updated);
         setModal(null);
       } catch {
-        setToast({
-          message: "Impossible de sauvegarder. Reessayez.",
-          variant: "error",
-        });
+        enqueue("Impossible de sauvegarder. Reessayez.", "error");
       } finally {
         mutating.current = false;
         setModalSaving(false);
       }
     },
-    [profileData, modal, accessToken]
+    [profileData, modal, accessToken, enqueue]
   );
 
   const handleEducationDelete = useCallback(async () => {
     if (!profileData || modal?.type !== "education" || modal.mode !== "edit")
       return;
     if (mutating.current) {
-      setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+      enqueue("Une operation est en cours, reessayez dans un instant.", "error");
       return;
     }
     mutating.current = true;
@@ -332,15 +310,12 @@ export default function ProfilePage() {
       setProfileData(updated);
       setModal(null);
     } catch {
-      setToast({
-        message: "Impossible de supprimer. Reessayez.",
-        variant: "error",
-      });
+      enqueue("Impossible de supprimer. Reessayez.", "error");
     } finally {
       mutating.current = false;
       setModalSaving(false);
     }
-  }, [profileData, modal, accessToken]);
+  }, [profileData, modal, accessToken, enqueue]);
 
   // ---------------------------------------------------------------------------
   // Handlers modale experience
@@ -349,7 +324,7 @@ export default function ProfilePage() {
   const handleExperienceSave = useCallback(
     async (data: ExperiencePayload) => {
       if (!profileData || mutating.current) {
-        setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+        enqueue("Une operation est en cours, reessayez dans un instant.", "error");
         return;
       }
       mutating.current = true;
@@ -371,23 +346,20 @@ export default function ProfilePage() {
         setProfileData(updated);
         setModal(null);
       } catch {
-        setToast({
-          message: "Impossible de sauvegarder. Reessayez.",
-          variant: "error",
-        });
+        enqueue("Impossible de sauvegarder. Reessayez.", "error");
       } finally {
         mutating.current = false;
         setModalSaving(false);
       }
     },
-    [profileData, modal, accessToken]
+    [profileData, modal, accessToken, enqueue]
   );
 
   const handleExperienceDelete = useCallback(async () => {
     if (!profileData || modal?.type !== "experience" || modal.mode !== "edit")
       return;
     if (mutating.current) {
-      setToast({ message: "Une operation est en cours, reessayez dans un instant.", variant: "error" });
+      enqueue("Une operation est en cours, reessayez dans un instant.", "error");
       return;
     }
     mutating.current = true;
@@ -403,15 +375,12 @@ export default function ProfilePage() {
       setProfileData(updated);
       setModal(null);
     } catch {
-      setToast({
-        message: "Impossible de supprimer. Reessayez.",
-        variant: "error",
-      });
+      enqueue("Impossible de supprimer. Reessayez.", "error");
     } finally {
       mutating.current = false;
       setModalSaving(false);
     }
-  }, [profileData, modal, accessToken]);
+  }, [profileData, modal, accessToken, enqueue]);
 
   // ---------------------------------------------------------------------------
   // Navigation
@@ -468,7 +437,6 @@ export default function ProfilePage() {
             Chargement du profil...
           </div>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </>
     );
   }
@@ -519,7 +487,7 @@ export default function ProfilePage() {
           <Toast
             message={toast.message}
             variant={toast.variant}
-            onClose={() => setToast(null)}
+            onClose={closeToast}
           />
         )}
       </>
@@ -647,11 +615,10 @@ export default function ProfilePage() {
         <Toast
           message={toast.message}
           variant={toast.variant}
-          onClose={() => setToast(null)}
+          onClose={closeToast}
         />
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

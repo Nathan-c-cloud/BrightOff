@@ -220,13 +220,6 @@ export default function OnboardingPage() {
 
   return (
     <>
-      {/* Animation spinner — injectée en style global minimal */}
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-
       <NavApp
         userName={userName}
         userInitials={userInitials}
